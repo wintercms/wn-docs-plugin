@@ -1,0 +1,304 @@
+<?php namespace RainLab\Docs\Controllers;
+
+use ApplicationException;
+use BackendMenu;
+use File;
+use Flash;
+use Http;
+use Lang;
+use Markdown;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use Redirect;
+use October\Rain\Filesystem\Zip;
+use RainLab\Docs\Classes\PagesList;
+
+/**
+ * Index controller
+ *
+ * Handles the documentation area.
+ *
+ * @author Ben Thomson
+ */
+class Index extends \Backend\Classes\Controller
+{
+    /**
+     * @var string The ZIP file to download the documentation source.
+     */
+    protected $docsRepoZip = 'https://github.com/octobercms/docs/archive/master.zip';
+
+    /**
+     * @var string Temporary storage directory.
+     */
+    protected $tempDirectory;
+
+    /**
+     * @var string Rendered documentation storage directory.
+     */
+    protected $renderDirectory;
+
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        if ($this->action == 'backend_preferences') {
+            $this->requiredPermissions = ['backend.manage_preferences'];
+        }
+
+        $this->addJs('/plugins/rainlab/docs/assets/js/docsUpdater.js');
+
+        BackendMenu::setContext('RainLab.Docs', 'docs');
+    }
+
+    /**
+     * Loads and displays the documentation pages.
+     *
+     * @param string $slug
+     * @return void
+     */
+    public function index()
+    {
+        $path = implode('/', func_get_args());
+
+        BackendMenu::registerContextSidenavPartial('RainLab.Docs', 'docs', 'sidenav');
+
+        $this->bodyClass = 'has-sidenav-tree';
+        $this->addCss('/plugins/rainlab/docs/assets/css/sidenav.css');
+
+        $this->vars['loaded'] = PagesList::instance()->loaded();
+        $this->vars['items'] = PagesList::instance()->getNavigation('docs');
+
+        if (empty($path)) {
+            $this->pageTitle = Lang::get('rainlab.docs::lang.titles.documentation');
+            $this->vars['content'] = Lang::get('rainlab.docs::lang.content.intro');
+            $this->vars['showRefresh'] = true;
+        } else {
+            $this->addCss('/plugins/rainlab/docs/assets/css/content.css');
+            $this->addJs('/plugins/rainlab/docs/assets/js/docsContent.js');
+
+            $page = $this->getPage($path);
+            if ($page === null) {
+                throw new ApplicationException('Documentation does not exist for ' . $path);
+            }
+
+            $this->vars['content'] = $page['content'];
+            $this->vars['active'] = $page['active'];
+            $this->vars['showRefresh'] = false;
+        }
+    }
+
+    /**
+     * AJAX handler that returns the documentation update steps.
+     *
+     * @return void
+     */
+    public function onUpdateDocs()
+    {
+        $updateSteps = [
+            [
+                'code' => 'downloadUpdates',
+                'label' => Lang::get('rainlab.docs::lang.updates.downloading'),
+            ],
+            [
+                'code' => 'extractUpdates',
+                'label' => Lang::get('rainlab.docs::lang.updates.extracting'),
+            ],
+            [
+                'code' => 'renderingDocs',
+                'label' => Lang::get('rainlab.docs::lang.updates.rendering'),
+            ],
+            [
+                'code' => 'completeUpdate',
+                'label' => Lang::get('rainlab.docs::lang.updates.finalizing'),
+            ],
+        ];
+
+        $this->vars['updateSteps'] = $updateSteps;
+        $this->vars['install'] = (bool) post('install', false);
+        return $this->makePartial('refresh');
+    }
+
+    /**
+     * Executes an update step.
+     *
+     * @return void
+     */
+    public function onExecuteStep()
+    {
+        @set_time_limit(3600);
+
+        $stepCode = post('code');
+
+        switch ($stepCode) {
+            case 'downloadUpdates':
+                $this->downloadUpdates();
+                break;
+            case 'extractUpdates':
+                $this->extractUpdates();
+                break;
+            case 'renderingDocs':
+                $this->renderDocs();
+                break;
+            case 'completeUpdate':
+                Flash::success(Lang::get('rainlab.docs::lang.updates.success'));
+                return Redirect::refresh();
+                break;
+        }
+    }
+
+    /**
+     * Finds a page by a given path.
+     *
+     * @param string $path
+     * @return array|null
+     */
+    protected function getPage($path)
+    {
+        $normalizedPath = str_replace('/', '-', $path);
+
+        if (File::exists($this->getRenderDirectory() . '/' . $normalizedPath . '.html')) {
+            return [
+                'active' => $path,
+                'content' => File::get($this->renderDirectory . '/' . $normalizedPath . '.html')
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Downloads the documentation from the repository and stores it within the temp folder.
+     *
+     * @return void
+     */
+    protected function downloadUpdates()
+    {
+        $tempPath = $this->getTempDirectory() . '/' . 'docs-repo.zip';
+
+        $result = Http::get($this->docsRepoZip, function ($http) use ($tempPath) {
+            $http->toFile($tempPath);
+        });
+
+        if ($result->code != 200) {
+            throw new ApplicationException('Unable to download documentation.');
+        }
+    }
+
+    /**
+     * Extracts the documentation from the repository ZIP file.
+     *
+     * @return void
+     */
+    protected function extractUpdates()
+    {
+        $tempPath = $this->getTempDirectory() . '/' . 'docs-repo.zip';
+        $destFolder = $this->tempDirectory;
+
+        // Remove old extract folder if it exists
+        if (File::exists($destFolder . '/docs-master')) {
+            File::deleteDirectory($destFolder . '/docs-master');
+        }
+
+        if (!Zip::extract($tempPath, $destFolder)) {
+            throw new ApplicationException(Lang::get('rainlab.docs::lang.updates.extractFailed', [
+                'file' => $tempPath
+            ]));
+        }
+
+        @unlink($tempPath);
+    }
+
+    /**
+     * Renders the documentation as HTML files.
+     *
+     * This will iterate through the Markdown documents from the documentation repository and render each one as
+     * an HTML file for display in the documentation area.
+     *
+     * It will also move other files (ie. configuration and images) into their specific folders.
+     *
+     * @return void
+     */
+    protected function renderDocs()
+    {
+        $renderDir = $this->getRenderDirectory();
+        $tempFolder = $this->getTempDirectory() . '/docs-master';
+
+        // Clear out old rendered docs
+        if (count(File::files($renderDir)) > 0) {
+            File::deleteDirectory($renderDir, true);
+        }
+
+        $files = (is_dir($tempFolder))
+            ? new RecursiveIteratorIterator(new RecursiveDirectoryIterator($tempFolder))
+            : [];
+
+        foreach ($files as $file) {
+            // YAML files - structure and menus
+            if (File::isFile($file) && File::extension($file) === 'yaml') {
+                if (!File::exists($renderDir . '/config')) {
+                    File::makeDirectory($renderDir . '/config', 0777, true);
+                }
+
+                File::move($file, $renderDir . '/config/' . File::basename($file));
+            }
+
+            // Image files
+            if (File::isFile($file) && in_array(File::extension($file), ['jpg', 'jpeg', 'png', 'gif'])) {
+                if (!File::exists($renderDir . '/images')) {
+                    File::makeDirectory($renderDir . '/images', 0777, true);
+                }
+
+                File::move($file, $renderDir . '/images/' . File::basename($file));
+            }
+
+            // Markdown files - documentation content
+            if (File::isFile($file) && File::extension($file) === 'md') {
+                $filename = File::name($file);
+                $html = Markdown::parse(File::get($file));
+                File::put($renderDir . '/' . $filename . '.html', $html);
+            }
+        }
+
+        // Remove temp folder
+        File::deleteDirectory($tempFolder);
+    }
+
+    /**
+     * Gets the directory that will store temporary files for the update process.
+     *
+     * If the directory does not exist, it will be created.
+     *
+     * @return string
+     */
+    protected function getTempDirectory()
+    {
+        $tempDirectory = temp_path();
+
+        if (!File::isDirectory($tempDirectory)) {
+            File::makeDirectory($tempDirectory, 0777, true);
+        }
+
+        return $this->tempDirectory = $tempDirectory;
+    }
+
+    /**
+     * Gets the directory that will store the rendered Markdown files.
+     *
+     * If the directory does not exist, it will be created.
+     *
+     * @return string
+     */
+    protected function getRenderDirectory()
+    {
+        $renderDirectory = storage_path('app/docs');
+
+        if (!File::isDirectory($renderDirectory)) {
+            File::makeDirectory($renderDirectory, 0777, true);
+        }
+
+        return $this->renderDirectory = $renderDirectory;
+    }
+}

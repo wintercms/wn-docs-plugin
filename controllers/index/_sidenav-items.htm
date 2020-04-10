@@ -1,0 +1,25 @@
+<ul class="top-level">
+    <?php foreach ($items as $section => $pages):
+        $collapsed = false;
+    ?>
+        <li data-group-code="<?= e($section) ?>" <?= $collapsed ? 'data-status="collapsed"' : null ?>>
+            <div class="group">
+                <h3><?= e($section) ?></h3>
+            </div>
+
+            <ul <?= $collapsed ? 'style="overflow: visible; height: 0px; display: none;"' : null ?>>
+            <?php foreach ($pages as $page): ?>
+                <li
+                    class=""
+                >
+                    <a href="<?= $page['url'] ?>">
+                        <span class="nav-label">
+                            <?= e($page['label']) ?>
+                        </span>
+                    </a>
+                </li>
+            <?php endforeach ?>
+            </ul>
+        </li>
+    <?php endforeach ?>
+</ul>

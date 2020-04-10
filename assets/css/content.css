@@ -1,0 +1,89 @@
+.docs-content {
+  padding: 0 0;
+}
+.docs-content > *:first-child {
+  margin-top: 0;
+}
+.docs-content h1 {
+  font-size: 28px;
+}
+.docs-content h2 {
+  font-size: 24px;
+}
+.docs-content h3 {
+  font-size: 20px;
+}
+.docs-content h4 {
+  font-size: 17px;
+}
+.docs-content h1,
+.docs-content h2 {
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+}
+.docs-content img {
+    max-width: 100%;
+}
+.docs-content ul,
+.docs-content ol {
+    padding-left: 20px;
+}
+.docs-content code {
+    display: inline-block;
+    color: #a15513;
+}
+.docs-content pre {
+    display: block;
+    border: none;
+    margin: 30px -20px 30px;
+    padding: 20px;
+    font-size: 14px;
+    word-break: break-all;
+    word-wrap: break-word;
+    color: #fff;
+    background-color: #2c2f38;
+}
+.docs-content pre code {
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+    white-space: pre-wrap;
+    background-color: transparent;
+    border-radius: 0;
+}
+.docs-content ul pre,
+.docs-content ol pre {
+    margin-left: -40px;
+    padding-left: 40px;
+}
+.docs-content table th {
+    font-weight: bold;
+}
+.docs-content table th,
+.docs-content table td {
+    padding: 6px 13px;
+    border: 1px solid #ddd;
+}
+.docs-content table tr {
+    background-color: #fff;
+    border-top: 1px solid #ccc;
+}
+.docs-content table tr:nth-child(2n) {
+    background-color: #f8f8f8;
+}
+.docs-content dl dt,
+.docs-content dl dd {
+    margin-bottom: 10px;
+}
+.docs-content dl dt {
+    width: 75px;
+    float: left;
+    text-align: right;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+.docs-content dl dd {
+    margin-left: 85px;
+}

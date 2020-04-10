@@ -1,0 +1,27 @@
+<?php
+return [
+    'plugin' => [
+        'name' => 'Docs',
+        'description' => 'Offline and inbuilt version of the October CMS docs.'
+    ],
+    'titles' => [
+        'documentation' => 'Documentation',
+        'installDocs' => 'Install documentation',
+        'updateDocs' => 'Refresh documentation',
+    ],
+    'buttons' => [
+        'updateDocs' => 'Refresh documentation',
+    ],
+    'updates' => [
+        'downloading' => 'Downloading documentation from repository...',
+        'extracting' => 'Extracting documentation...',
+        'rendering' => 'Rendering documentation...',
+        'finalizing' => 'Finalizing...',
+        'success' => 'The documentation has been successfully updated.',
+    ],
+    'content' => [
+        'intro' => 'Welcome to the documentation for October CMS. Please click on one of the links to the left to
+            get more information about using October CMS and its wealth of features. If you wish to get the most
+            up-to-date documentation, please use the button below.'
+    ]
+];

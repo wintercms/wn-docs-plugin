@@ -1,0 +1,15 @@
+nav#layout-mainmenu ul.mainmenu-toolbar li.mainmenu-docs {
+    margin: 0 -21px 0 21px;
+}
+
+nav#layout-mainmenu ul.mainmenu-toolbar li.mainmenu-docs a {
+    position: relative;
+    padding: 0 10px;
+    top: -1px;
+    height: 60px;
+    line-height: 60px;
+}
+
+nav#layout-mainmenu ul.mainmenu-toolbar li.mainmenu-docs i {
+    font-size: 20px;
+}
