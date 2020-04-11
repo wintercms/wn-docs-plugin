@@ -1,6 +1,14 @@
+<?php
+    $context = System\Classes\SettingsManager::instance()->getContext();
+
+    $collapsedSections = explode('|',
+        isset($_COOKIE['sidenav_treegroupStatus']) ? $_COOKIE['sidenav_treegroupStatus'] : null
+    );
+?>
+
 <ul class="top-level">
     <?php foreach ($items as $section => $pages):
-        $collapsed = false;
+        $collapsed = in_array($section, $collapsedSections);
     ?>
         <li data-group-code="<?= e($section) ?>" <?= $collapsed ? 'data-status="collapsed"' : null ?>>
             <div class="group">
@@ -9,7 +17,10 @@
 
             <ul <?= $collapsed ? 'style="overflow: visible; height: 0px; display: none;"' : null ?>>
             <?php foreach ($pages as $id => $page): ?>
-                <li<?php if ($active === $id): ?> class="active"<?php endif ?>>
+                <li
+                    <?php if ($active === $id): ?>class="active"<?php endif ?>
+                    data-keywords=""
+                >
                     <a href="<?= $page['url'] ?>">
                         <span class="nav-label">
                             <?= e($page['label']) ?>
