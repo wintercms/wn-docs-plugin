@@ -9,6 +9,9 @@ return [
         'installDocs' => 'Install documentation',
         'updateDocs' => 'Refresh documentation',
     ],
+    'links' => [
+        'docsLink' => 'Read the documentation',
+    ],
     'buttons' => [
         'updateDocs' => 'Refresh documentation',
     ],

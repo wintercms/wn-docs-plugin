@@ -2,9 +2,10 @@
     $(document).ready(function () {
         var $menuToolbar = $('nav#layout-mainmenu ul.mainmenu-toolbar'),
             isMobile = $('html').hasClass('mobile'),
-            backendBasePath = $('meta[name="backend-base-path"]').attr('content')
+            backendBasePath = $('meta[name="backend-base-path"]').attr('content'),
+            label = $('#docs-link').data('label'),
             $link = $('<li class="mainmenu-docs with-tooltip">'
-                + '<a href="' + backendBasePath + '/docs" title="Read the documentation">'
+                + '<a href="' + backendBasePath + '/docs" title="' + label + '">'
                 + '<i class="icon-question-circle"></i>'
                 + '</a>'
                 + '</li>');

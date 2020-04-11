@@ -2,6 +2,7 @@
 namespace RainLab\Docs;
 
 use Event;
+use Lang;
 use System\Classes\CombineAssets;
 use System\Classes\PluginBase;
 
@@ -31,7 +32,10 @@ class Plugin extends PluginBase
          */
         Event::listen('backend.page.beforeDisplay', function ($controller) {
             $controller->addCss(url('plugins/rainlab/docs/assets/css/link.css'));
-            $controller->addJs(url('plugins/rainlab/docs/assets/js/linkInserter.js'));
+            $controller->addJs(url('plugins/rainlab/docs/assets/js/linkInserter.js'), [
+                'id' => 'docs-link',
+                'data-label' => Lang::get('rainlab.docs::lang.links.docsLink'),
+            ]);
         });
     }
 
