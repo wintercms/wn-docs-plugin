@@ -74,6 +74,7 @@ class Index extends \Backend\Classes\Controller
         if (empty($path)) {
             $this->pageTitle = Lang::get('rainlab.docs::lang.titles.documentation');
             $this->vars['content'] = Lang::get('rainlab.docs::lang.content.intro');
+            $this->vars['active'] = false;
             $this->vars['showRefresh'] = true;
         } else {
             $this->addCss('/plugins/rainlab/docs/assets/css/content.css');
