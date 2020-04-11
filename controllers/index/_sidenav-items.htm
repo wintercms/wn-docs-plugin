@@ -8,10 +8,8 @@
             </div>
 
             <ul <?= $collapsed ? 'style="overflow: visible; height: 0px; display: none;"' : null ?>>
-            <?php foreach ($pages as $page): ?>
-                <li
-                    class=""
-                >
+            <?php foreach ($pages as $id => $page): ?>
+                <li<?php if ($active === $id): ?> class="active"<?php endif ?>>
                     <a href="<?= $page['url'] ?>">
                         <span class="nav-label">
                             <?= e($page['label']) ?>
