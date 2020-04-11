@@ -2,7 +2,7 @@
 namespace RainLab\Docs;
 
 use Event;
-use RainLab\Docs\Classes\PagesList;
+use System\Classes\CombineAssets;
 use System\Classes\PluginBase;
 
 class Plugin extends PluginBase
@@ -18,6 +18,11 @@ class Plugin extends PluginBase
         ];
     }
 
+    public function register()
+    {
+        $this->registerAssetBundles();
+    }
+
     public function boot()
     {
         /**
@@ -27,6 +32,15 @@ class Plugin extends PluginBase
         Event::listen('backend.page.beforeDisplay', function ($controller) {
             $controller->addCss(url('plugins/rainlab/docs/assets/css/link.css'));
             $controller->addJs(url('plugins/rainlab/docs/assets/js/linkInserter.js'));
+        });
+    }
+
+    public function registerAssetBundles()
+    {
+        CombineAssets::registerCallback(function ($combiner) {
+            $combiner->registerBundle('~/plugins/rainlab/docs/assets/less/content.less');
+            $combiner->registerBundle('~/plugins/rainlab/docs/assets/less/link.less');
+            $combiner->registerBundle('~/plugins/rainlab/docs/assets/less/sidenav.less');
         });
     }
 }

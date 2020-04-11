@@ -1,8 +1,2 @@
-.sidenav-tree ul.top-level > li > ul li a {
-    padding: 10px 25px 10px 55px;
-}
-
-.sidenav-tree ul.top-level > li > ul li.active a {
-    padding: 10px 25px 10px 50px;
-    color: #ffffff;
-}
+.sidenav-tree ul.top-level >li >ul li a {padding:10px 25px 10px 55px}
+.sidenav-tree ul.top-level >li >ul li.active a {padding:10px 25px 10px 50px;color:#fff}
