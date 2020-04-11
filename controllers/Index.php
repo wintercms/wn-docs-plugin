@@ -85,6 +85,7 @@ class Index extends \Backend\Classes\Controller
                 throw new ApplicationException('Documentation does not exist for ' . $path);
             }
 
+            $this->pageTitle = $page['title'];
             $this->vars['content'] = $page['content'];
             $this->vars['active'] = $page['active'];
             $this->vars['showRefresh'] = false;
@@ -161,9 +162,16 @@ class Index extends \Backend\Classes\Controller
         $normalizedPath = str_replace('/', '-', $path);
 
         if (File::exists($this->getRenderDirectory() . '/' . $normalizedPath . '.html')) {
+            $content = File::get($this->renderDirectory . '/' . $normalizedPath . '.html');
+
+            // Extract title
+            preg_match('/^[\s\n\r]*<h1>([^<]+)<\/h1>/im', $content, $matches);
+            $title = (!empty($matches[1])) ? $matches[1] : Lang::get('rainlab.docs::lang.titles.documentation');
+
             return [
                 'active' => $path,
-                'content' => File::get($this->renderDirectory . '/' . $normalizedPath . '.html')
+                'title' => $title,
+                'content' => $content,
             ];
         }
 
