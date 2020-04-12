@@ -1,0 +1,17 @@
+<div class="layout-cell layout-container">
+    <div class="layout-relative">
+        <div class="layout">
+            <div class="layout-row">
+                <div class="fixed-content">
+                    <h1><?= $title ?></h1>
+
+                    <?php if (!empty($chapters)): ?>
+                        <ul class="nav-list">
+                            <?= $this->makePartial('sidepanel-nav-list'); ?>
+                        </ul>
+                    <?php endif ?>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

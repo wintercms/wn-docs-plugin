@@ -1,0 +1,42 @@
+// Local URL
+@import (optional) "../../../../../modules/backend/assets/less/core/boot.less";
+// Symlink URL
+@import (optional) "../../../october/modules/backend/assets/less/core/boot.less";
+
+@spacing: 40px;
+
+#layout-side-panel {
+    width: 260px !important;
+    background: @color-panel-light;
+
+    h1 {
+        font-size: @font-size-h1 - 8;
+        margin-top: 0;
+        padding-bottom: (@spacing / 4);
+        margin-bottom: (@spacing / 2);
+        border-bottom: 1px solid #ddd;
+    }
+
+    ul.nav-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+
+        & > li {
+            font-weight: bold;
+
+            &:not(:first-child) {
+                margin-top: (@spacing / 2);
+            }
+        }
+
+        li > ul.sub-list {
+            padding-left: (@spacing / 2);
+            list-style: none;
+
+            li {
+                font-weight: normal;
+            }
+        }
+    }
+}

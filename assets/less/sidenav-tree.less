@@ -1,0 +1,22 @@
+.sidenav-tree {
+    width: 240px;
+
+    ul.top-level > li {
+        & > div.group {
+            &::after {
+                content: none;
+            }
+        }
+
+        & > ul li {
+            a {
+                padding: 10px 25px 10px 40px;
+            }
+
+            &.active a {
+                padding: 10px 25px 10px 35px;
+                color: #ffffff;
+            }
+        }
+    }
+}

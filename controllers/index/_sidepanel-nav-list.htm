@@ -1,0 +1,12 @@
+<?php foreach ($chapters as $chapter): ?>
+    <li>
+        <a href="<?= $chapter['url'] ?>">
+            <?= $chapter['title'] ?>
+        </a>
+        <?php if (count($chapter['children'])): ?>
+            <ul class="sub-list">
+                <?= $this->makePartial('sidepanel-nav-list', ['chapters' => $chapter['children']]) ?>
+            </ul>
+        <?php endif ?>
+    </li>
+<?php endforeach ?>
