@@ -23,6 +23,11 @@ use RainLab\Docs\Classes\PagesList;
 class Index extends \Backend\Classes\Controller
 {
     /**
+     * @var string Specifies a path to the asset directory.
+     */
+    public $assetPath = '~/plugins/rainlab/docs/assets';
+
+    /**
      * @var string The ZIP file to download the documentation source.
      */
     protected $docsRepoZip = 'https://github.com/octobercms/docs/archive/master.zip';
@@ -66,7 +71,9 @@ class Index extends \Backend\Classes\Controller
         BackendMenu::registerContextSidenavPartial('RainLab.Docs', 'docs', 'sidenav');
 
         $this->bodyClass = 'has-sidenav-tree';
-        $this->addCss('/plugins/rainlab/docs/assets/css/sidenav.css');
+        $this->addCss([
+            'less/sidenav.less'
+        ]);
 
         $this->vars['loaded'] = PagesList::instance()->loaded();
         $this->vars['items'] = PagesList::instance()->getNavigation('docs');
@@ -77,8 +84,17 @@ class Index extends \Backend\Classes\Controller
             $this->vars['active'] = false;
             $this->vars['showRefresh'] = true;
         } else {
-            $this->addCss('/plugins/rainlab/docs/assets/css/content.css');
-            $this->addJs('/plugins/rainlab/docs/assets/js/docsContent.js');
+            $this->addCss([
+                'less/content.less',
+                'vendor/highlight/styles/tomorrow-night.css',
+            ]);
+            $this->addJs([
+                'js/docsContent.js',
+                'vendor/highlight/highlight.pack.js',
+            ], [
+                'id' => 'docs-content-js',
+                'data-lang-copy-code' => Lang::get('rainlab.docs::lang.buttons.copyCode'),
+            ]);
 
             $page = $this->getPage($path);
             if ($page === null) {

@@ -42,9 +42,7 @@ class Plugin extends PluginBase
     public function registerAssetBundles()
     {
         CombineAssets::registerCallback(function ($combiner) {
-            $combiner->registerBundle('~/plugins/rainlab/docs/assets/less/content.less');
             $combiner->registerBundle('~/plugins/rainlab/docs/assets/less/link.less');
-            $combiner->registerBundle('~/plugins/rainlab/docs/assets/less/sidenav.less');
         });
     }
 }
