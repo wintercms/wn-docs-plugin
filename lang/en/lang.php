@@ -14,7 +14,7 @@ return [
     ],
     'buttons' => [
         'updateDocs' => 'Refresh documentation',
-        'copyCode' => 'Copy this code',
+        'copyCode' => 'Copy code',
     ],
     'updates' => [
         'downloading' => 'Downloading documentation from repository...',
