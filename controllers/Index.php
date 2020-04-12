@@ -11,6 +11,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Redirect;
 use October\Rain\Filesystem\Zip;
+use RainLab\Docs\Classes\Page;
 use RainLab\Docs\Classes\PagesList;
 
 /**
@@ -68,11 +69,11 @@ class Index extends \Backend\Classes\Controller
     {
         $path = implode('/', func_get_args());
 
-        BackendMenu::registerContextSidenavPartial('RainLab.Docs', 'docs', 'sidenav');
+        BackendMenu::registerContextSidenavPartial('RainLab.Docs', 'docs', 'sidenav-tree');
 
         $this->bodyClass = 'has-sidenav-tree';
         $this->addCss([
-            'less/sidenav.less'
+            'less/side.less',
         ]);
 
         $this->vars['loaded'] = PagesList::instance()->loaded();
@@ -97,13 +98,11 @@ class Index extends \Backend\Classes\Controller
             ]);
 
             $page = $this->getPage($path);
-            if ($page === null) {
-                throw new ApplicationException('Documentation does not exist for ' . $path);
-            }
 
-            $this->pageTitle = $page['title'];
-            $this->vars['content'] = $page['content'];
-            $this->vars['active'] = $page['active'];
+            $this->vars['title'] = $this->pageTitle = $page->title;
+            $this->vars['content'] = $page->content;
+            $this->vars['chapters'] = $page->chapters;
+            $this->vars['active'] = $path;
             $this->vars['showRefresh'] = false;
         }
     }
@@ -171,27 +170,13 @@ class Index extends \Backend\Classes\Controller
      * Finds a page by a given path.
      *
      * @param string $path
-     * @return array|null
+     * @return Page
      */
     protected function getPage($path)
     {
         $normalizedPath = str_replace('/', '-', $path);
 
-        if (File::exists($this->getRenderDirectory() . '/' . $normalizedPath . '.html')) {
-            $content = File::get($this->renderDirectory . '/' . $normalizedPath . '.html');
-
-            // Extract title
-            preg_match('/^[\s\n\r]*<h1>([^<]+)<\/h1>/im', $content, $matches);
-            $title = (!empty($matches[1])) ? $matches[1] : Lang::get('rainlab.docs::lang.titles.documentation');
-
-            return [
-                'active' => $path,
-                'title' => $title,
-                'content' => $content,
-            ];
-        }
-
-        return null;
+        return new Page($this->getRenderDirectory() . '/' . $normalizedPath . '.html');
     }
 
     /**
