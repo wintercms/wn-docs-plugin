@@ -4,9 +4,10 @@
 @import (optional) "../../../october/modules/backend/assets/less/core/boot.less";
 
 @padding-container: 0;
+@spacing: 40px;
 
 #docs-content {
-    padding: 0 @padding-container;
+    padding: 0 0 @spacing 0;
 
     > *:first-child {
         margin-top: 0;
@@ -18,9 +19,14 @@
     h4 { font-size: @font-size-h4 - 1; }
 
     h1, h2 {
-        padding-bottom: 15px;
-        margin-bottom: 15px;
+        margin-top: @spacing;
+        padding-bottom: (@spacing / 4);
+        margin-bottom: (@spacing / 2);
         border-bottom: 1px solid #ddd;
+    }
+
+    h3, h4, h5, h6 {
+        margin: (@spacing / 2) 0;
     }
 
     img {
@@ -35,7 +41,7 @@
         position: relative;
         display: block;
         border: none;
-        margin: 10px -(@padding-standard + @padding-container) 20px;
+        margin: (@spacing / 2) 0;
         padding: 10px 10px 10px (@padding-standard + @padding-container);
         font-size: 13px;
         word-break: break-all;
@@ -60,6 +66,8 @@
     }
 
     table {
+        margin: @spacing 0;
+
         th {
             font-weight: bold;
         }
