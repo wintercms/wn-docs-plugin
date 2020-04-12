@@ -37,6 +37,15 @@
         padding-left: @padding-standard;
     }
 
+    code {
+        display: inline-block;
+        padding: 1px 4px;
+        background: #fdfdfd;
+        border: 1px solid #e5e5e5;
+        border-radius: 3px;
+        color: @brand-secondary;
+    }
+
     pre {
         position: relative;
         display: block;
@@ -50,7 +59,11 @@
         background-color: #2c2f38;
 
         code {
+            display: inline;
             padding: 0;
+            background: none;
+            border: none;
+            border-radius: 0;
             font-size: inherit;
             color: inherit;
             white-space: pre-wrap;
