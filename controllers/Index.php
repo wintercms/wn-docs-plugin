@@ -83,6 +83,7 @@ class Index extends \Backend\Classes\Controller
             $this->pageTitle = Lang::get('rainlab.docs::lang.titles.documentation');
             $this->vars['content'] = Lang::get('rainlab.docs::lang.content.intro');
             $this->vars['active'] = false;
+            $this->vars['showSidePanel'] = false;
             $this->vars['showRefresh'] = true;
         } else {
             $this->addCss([
@@ -103,6 +104,7 @@ class Index extends \Backend\Classes\Controller
             $this->vars['content'] = $page->content;
             $this->vars['chapters'] = $page->chapters;
             $this->vars['active'] = $path;
+            $this->vars['showSidePanel'] = true;
             $this->vars['showRefresh'] = false;
         }
     }

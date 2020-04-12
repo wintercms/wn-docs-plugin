@@ -9,7 +9,9 @@
     </script>
 <?php else: ?>
     <?= Block::put('sidepanel') ?>
-        <?= $this->makePartial('sidepanel') ?>
+        <?php if ($showSidePanel): ?>
+            <?= $this->makePartial('sidepanel') ?>
+        <?php endif ?>
     <?= Block::endPut() ?>
 
     <?= Block::put('body') ?>
