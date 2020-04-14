@@ -2,7 +2,7 @@
 return [
     'plugin' => [
         'name' => 'Docs',
-        'description' => 'Offline and inbuilt version of the October CMS docs.'
+        'description' => 'Documentation suite for October CMS.'
     ],
     'titles' => [
         'documentation' => 'Documentation',
