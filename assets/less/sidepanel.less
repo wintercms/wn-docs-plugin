@@ -9,6 +9,18 @@
     width: 260px !important;
     background: @color-panel-light;
 
+    > .layout-cell,
+    > .layout-cell > .layout-relative,
+    > .layout-cell > .layout-relative > .layout,
+    > .layout-cell > .layout-relative > .layout > .layout-row {
+        height: 100%;
+    }
+
+    .fixed-content {
+        position: sticky;
+        top: @padding-standard;
+    }
+
     h1 {
         font-size: @font-size-h1 - 8;
         margin-top: 0;
@@ -22,20 +34,20 @@
         padding: 0;
         list-style: none;
 
-        & > li {
-            font-weight: bold;
-        }
-
         li {
             margin-top: (@spacing / 5);
-        }
 
-        li > ul.sub-list {
-            padding-left: (@spacing / 1.5);
-            list-style: none;
+            a.reading {
+                font-weight: bold;
+            }
 
-            li {
-                font-weight: normal;
+            & > ul.sub-list {
+                padding-left: (@spacing / 1.5);
+                list-style: none;
+    
+                li {
+                    font-weight: normal;
+                }
             }
         }
     }
