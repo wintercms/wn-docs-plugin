@@ -1,7 +1,11 @@
 // Local URL
 @import (optional) "../../../../../modules/backend/assets/less/core/boot.less";
+@import (optional, reference) "../../../../../modules/system/assets/ui/less/callout.less";
 // Symlink URL
 @import (optional) "../../../october/modules/backend/assets/less/core/boot.less";
+@import (optional, reference) "../../../october/modules/system/assets/ui/less/callout.less";
+
+// Reference the callout UI
 
 @padding-container: 0;
 @spacing: 40px;
@@ -83,7 +87,7 @@
     }
 
     table {
-        margin: @spacing 0;
+        margin: (@spacing / 2) 0;
 
         th {
             font-weight: bold;
@@ -119,6 +123,33 @@
         dd {
             margin-left: 85px;
         }
+    }
+
+    /**
+     * Notes
+     */
+    blockquote {
+        font-size: @font-size-base - 1;
+        margin-bottom: @line-height-computed;
+        color: #2f2d26;
+        padding: 16px 20px 15px;
+
+        background: white;
+        border: 2px solid @callout-info-content-bg;
+
+        h1, h2, h3, h4, h5, h6 {
+            color: #2f2d26;
+            text-transform: none;
+            margin: 20px 0 5px 0;
+            line-height: 150%;
+        }
+
+        h1 { font-size: 30px; }
+        h2 { font-size: 26px; }
+        h3 { font-size: 24px; }
+        h4 { font-size: 20px; }
+        h5 { font-size: 18px; }
+        h6 { font-size: 16px; }
     }
 
     /**
