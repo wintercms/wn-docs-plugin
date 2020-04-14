@@ -1,4 +1,4 @@
-# Dusk Plugin
+# Docs Plugin
 
 Integrates a full suite of documentation direct into your October CMS installation.
 
