@@ -120,7 +120,7 @@
                 anchor = self.$el.find('a[name="' + anchorName + '"]');
 
             if (anchor.length > 0) {
-                self.anchorPositions[anchorName] = anchor.get(0).getBoundingClientRect().top;
+                self.anchorPositions[anchorName] = anchor.get(0).offsetTop + 140;
             }
         });
 
