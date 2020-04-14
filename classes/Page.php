@@ -158,7 +158,7 @@ class Page
                     }
 
                     $this->content = $dom->saveHTML($body);
-
+                    $this->tidyStartOfContent();
                     return;
                 }
             }
@@ -168,6 +168,73 @@ class Page
         preg_match('/^[\s\n\r]*<h1>([^<]+)<\/h1>[\n\r\s]+(.*?)$/ims', $this->content, $matches);
         $this->title = $matches[1] ?? null;
         $this->content = $matches[2] ?? null;
+    }
+
+    /**
+     * Removes or reformats some initial content to clean up the code.
+     *
+     * @return void
+     */
+    protected function tidyStartOfContent()
+    {
+        if (extension_loaded('xml')) {
+            // If libxml is available, use a much more reliable DOM parser to extract the title and table of contents.
+
+            libxml_use_internal_errors(true);
+
+            $dom = new \DOMDocument('1.0', 'utf-8');
+            $dom->loadHTML($this->content);
+            $body = $dom->getElementsByTagName('body');
+
+            if ($body->length >= 1) {
+                $body = $body->item(0);
+            } else {
+                throw new ApplicationException('Documentation file has no body content.');
+            }
+
+            if (!count(libxml_get_errors())) {
+                $removeNodes = [];
+
+                foreach ($body->childNodes as $node) {
+                    $nodeTag = strtolower($node->nodeName);
+
+                    // Look for <p> tags that just contain an anchor, and remove them (but keep the anchor)
+                    if (
+                        $nodeTag === 'p'
+                        && $node->childNodes->length === 1
+                        && strtolower($node->firstChild->nodeName) === 'a'
+                        && $node->firstChild->getAttribute('name')
+                    ) {
+                        $body->replaceChild($node->firstChild, $node);
+                        continue;
+                    }
+
+                    // Look for empty <p> tags and remove them
+                    if ($nodeTag === 'p' && trim($node->textContent) === '') {
+                        $removeNodes[] = $node;
+                        continue;
+                    }
+
+                    // Remove empty text
+                    if ($node instanceof \DOMText && trim($node->textContent) === '') {
+                        $removeNodes[] = $node;
+                        continue;
+                    }
+
+                    break;
+                }
+
+                // Remove empty nodes
+                if (count($removeNodes)) {
+                    foreach ($removeNodes as $node) {
+                        $body->removeChild($node);
+                    }
+                }
+
+                $this->content = $dom->saveHTML($body);
+                return;
+            }
+        }
     }
 
     /**
