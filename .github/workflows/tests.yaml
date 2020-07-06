@@ -1,0 +1,27 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - master
+    pull_request:
+
+jobs:
+  phpUnitTests:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 6
+      matrix:
+        phpVersions: ['7.2', '7.3', '7.4']
+      fail-fast: false
+    name: Unit Tests / PHP ${{ matrix.phpVersions }}
+    steps:
+      - name: Checkout October CMS
+        uses: actions/checkout@v2
+        with:
+          repository: https://github.com/octobercms/october.git
+          ref: refs/head/wip/laravel-6
+      - name: Checkout plugin
+        uses: actions/checkout@v2
+        with:
+          path: plugins/rainlab/docs
