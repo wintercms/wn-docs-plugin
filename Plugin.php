@@ -1,5 +1,6 @@
 <?php namespace Winter\Docs;
 
+use Backend;
 use Event;
 use Lang;
 use System\Classes\CombineAssets;
@@ -19,30 +20,19 @@ class Plugin extends PluginBase
         ];
     }
 
-    public function register()
+    /**
+     * Registers back-end quick actions for this plugin.
+     *
+     * @return array
+     */
+    public function registerQuickActions()
     {
-        $this->registerAssetBundles();
-    }
-
-    public function boot()
-    {
-        /**
-         * Adds a small JS script that inserts the docs link into the top right of the Backend menu, as no event
-         * exists that can insert links there.
-         */
-        Event::listen('backend.page.beforeDisplay', function ($controller) {
-            $controller->addCss(url('plugins/winter/docs/assets/css/link.css'));
-            $controller->addJs(url('plugins/winter/docs/assets/js/linkInserter.js'), [
-                'id' => 'docs-link',
-                'data-label' => Lang::get('winter.docs::lang.links.docsLink'),
-            ]);
-        });
-    }
-
-    public function registerAssetBundles()
-    {
-        CombineAssets::registerCallback(function ($combiner) {
-            $combiner->registerBundle('~/plugins/winter/docs/assets/less/link.less');
-        });
+        return [
+            'help' => [
+                'label' => 'winter.docs::lang.links.docsLink',
+                'icon' => 'icon-question-circle',
+                'url' => Backend::url('docs'),
+            ],
+        ];
     }
 }
