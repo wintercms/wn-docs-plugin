@@ -1,4 +1,4 @@
-<?php namespace RainLab\Docs\Controllers;
+<?php namespace Winter\Docs\Controllers;
 
 use ApplicationException;
 use BackendMenu;
@@ -10,9 +10,9 @@ use Markdown;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Redirect;
-use October\Rain\Filesystem\Zip;
-use RainLab\Docs\Classes\Page;
-use RainLab\Docs\Classes\PagesList;
+use Winter\Storm\Filesystem\Zip;
+use Winter\Docs\Classes\Page;
+use Winter\Docs\Classes\PagesList;
 
 /**
  * Index controller
@@ -26,12 +26,12 @@ class Index extends \Backend\Classes\Controller
     /**
      * @var string Specifies a path to the asset directory.
      */
-    public $assetPath = '~/plugins/rainlab/docs/assets';
+    public $assetPath = '~/plugins/winter/docs/assets';
 
     /**
      * @var string The ZIP file to download the documentation source.
      */
-    protected $docsRepoZip = 'https://github.com/octobercms/docs/archive/master.zip';
+    protected $docsRepoZip = 'https://github.com/wintercms/docs/archive/master.zip';
 
     /**
      * @var string Temporary storage directory.
@@ -54,9 +54,9 @@ class Index extends \Backend\Classes\Controller
             $this->requiredPermissions = ['backend.manage_preferences'];
         }
 
-        $this->addJs('/plugins/rainlab/docs/assets/js/docsUpdater.js');
+        $this->addJs('/plugins/winter/docs/assets/js/docsUpdater.js');
 
-        BackendMenu::setContext('RainLab.Docs', 'docs');
+        BackendMenu::setContext('Winter.Docs', 'docs');
     }
 
     /**
@@ -69,7 +69,7 @@ class Index extends \Backend\Classes\Controller
     {
         $path = implode('/', func_get_args());
 
-        BackendMenu::registerContextSidenavPartial('RainLab.Docs', 'docs', 'sidenav-tree');
+        BackendMenu::registerContextSidenavPartial('Winter.Docs', 'docs', 'sidenav-tree');
 
         $this->bodyClass = 'has-sidenav-tree';
         $this->addCss([
@@ -80,8 +80,8 @@ class Index extends \Backend\Classes\Controller
         $this->vars['items'] = PagesList::instance()->getNavigation('docs');
 
         if (empty($path)) {
-            $this->pageTitle = Lang::get('rainlab.docs::lang.titles.documentation');
-            $this->vars['content'] = Lang::get('rainlab.docs::lang.content.intro');
+            $this->pageTitle = Lang::get('winter.docs::lang.titles.documentation');
+            $this->vars['content'] = Lang::get('winter.docs::lang.content.intro');
             $this->vars['active'] = false;
             $this->vars['showSidePanel'] = false;
             $this->vars['showRefresh'] = true;
@@ -95,7 +95,7 @@ class Index extends \Backend\Classes\Controller
                 'vendor/highlight/highlight.pack.js',
             ], [
                 'id' => 'docs-content-js',
-                'data-lang-copy-code' => Lang::get('rainlab.docs::lang.buttons.copyCode'),
+                'data-lang-copy-code' => Lang::get('winter.docs::lang.buttons.copyCode'),
             ]);
 
             $page = $this->getPage($path);
@@ -119,19 +119,19 @@ class Index extends \Backend\Classes\Controller
         $updateSteps = [
             [
                 'code' => 'downloadUpdates',
-                'label' => Lang::get('rainlab.docs::lang.updates.downloading'),
+                'label' => Lang::get('winter.docs::lang.updates.downloading'),
             ],
             [
                 'code' => 'extractUpdates',
-                'label' => Lang::get('rainlab.docs::lang.updates.extracting'),
+                'label' => Lang::get('winter.docs::lang.updates.extracting'),
             ],
             [
                 'code' => 'renderingDocs',
-                'label' => Lang::get('rainlab.docs::lang.updates.rendering'),
+                'label' => Lang::get('winter.docs::lang.updates.rendering'),
             ],
             [
                 'code' => 'completeUpdate',
-                'label' => Lang::get('rainlab.docs::lang.updates.finalizing'),
+                'label' => Lang::get('winter.docs::lang.updates.finalizing'),
             ],
         ];
 
@@ -162,7 +162,7 @@ class Index extends \Backend\Classes\Controller
                 $this->renderDocs();
                 break;
             case 'completeUpdate':
-                Flash::success(Lang::get('rainlab.docs::lang.updates.success'));
+                Flash::success(Lang::get('winter.docs::lang.updates.success'));
                 return Redirect::refresh();
                 break;
         }
@@ -215,7 +215,7 @@ class Index extends \Backend\Classes\Controller
         }
 
         if (!Zip::extract($tempPath, $destFolder)) {
-            throw new ApplicationException(Lang::get('rainlab.docs::lang.updates.extractFailed', [
+            throw new ApplicationException(Lang::get('winter.docs::lang.updates.extractFailed', [
                 'file' => $tempPath
             ]));
         }

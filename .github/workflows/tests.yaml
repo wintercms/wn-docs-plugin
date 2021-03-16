@@ -16,12 +16,12 @@ jobs:
       fail-fast: false
     name: Unit Tests / PHP ${{ matrix.phpVersions }}
     steps:
-      - name: Checkout October CMS
+      - name: Checkout Winter CMS
         uses: actions/checkout@v2
         with:
-          repository: https://github.com/octobercms/october.git
+          repository: https://github.com/wintercms/winter.git
           ref: refs/head/wip/laravel-6
       - name: Checkout plugin
         uses: actions/checkout@v2
         with:
-          path: plugins/rainlab/docs
+          path: plugins/winter/docs

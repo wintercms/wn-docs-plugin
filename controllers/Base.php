@@ -1,4 +1,4 @@
-<?php namespace RainLab\Docs\Controllers;
+<?php namespace Winter\Docs\Controllers;
 
 /**
  * Base controller.
@@ -11,6 +11,6 @@ class Base extends \Backend\Classes\BackendController
 {
     public function run($url = null)
     {
-        return parent::run('rainlab/docs/index/index/' . $url);
+        return parent::run('winter/docs/index/index/' . $url);
     }
 }

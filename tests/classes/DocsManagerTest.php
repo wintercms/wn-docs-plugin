@@ -1,6 +1,6 @@
-<?php namespace RainLab\Docs\Tests\Classes;
+<?php namespace Winter\Docs\Tests\Classes;
 
-use RainLab\Docs\Classes\DocsManager;
+use Winter\Docs\Classes\DocsManager;
 use TestCase;
 
 class DocsManagerTest extends TestCase
@@ -17,8 +17,8 @@ class DocsManagerTest extends TestCase
     public function testMakeIdentifier()
     {
         $this->assertEquals(
-            'rainlab.docs.test',
-            $this->docsManager->makeIdentifier('RainLab.Docs', 'test')
+            'winter.docs.test',
+            $this->docsManager->makeIdentifier('Winter.Docs', 'test')
         );
 
         $this->assertEquals(
@@ -27,13 +27,13 @@ class DocsManagerTest extends TestCase
         );
 
         $this->assertEquals(
-            'rainlab.docstest.docs',
-            $this->docsManager->makeIdentifier('RainLab.Docs.Test', 'docs')
+            'winter.docstest.docs',
+            $this->docsManager->makeIdentifier('Winter.Docs.Test', 'docs')
         );
 
         $this->assertEquals(
-            'rainlab.docstest',
-            $this->docsManager->makeIdentifier('RainLab', 'Docs.TEST')
+            'winter.docstest',
+            $this->docsManager->makeIdentifier('Winter', 'Docs.TEST')
         );
     }
 }

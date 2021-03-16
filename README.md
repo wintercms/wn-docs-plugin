@@ -1,19 +1,19 @@
 # Docs Plugin
 
-Integrates a full suite of documentation direct into your October CMS installation.
+Integrates a full suite of documentation direct into your Winter CMS installation.
 
 ![Screenshot](./.github/screenshot.png?raw=true)
 
 ## Getting started
 
-To install the plugin, you may install it through the [October CMS Marketplace](https://octobercms.com/plugin/rainlab-docs), or you may install it using Composer:
+To install the plugin, you may install it through the [Winter CMS Marketplace](https://github.com/wintercms/wn-docs-plugin), or you may install it using Composer:
 
 ```bash
-composer require rainlab/docs-plugin
+composer require winter/docs-plugin
 ```
 
 Then, run the migrations to ensure the plugin is enabled:
 
 ```bash
-php artisan october:up
+php artisan winter:up
 ```

@@ -1,5 +1,4 @@
-<?php
-namespace RainLab\Docs;
+<?php namespace Winter\Docs;
 
 use Event;
 use Lang;
@@ -11,11 +10,12 @@ class Plugin extends PluginBase
     public function pluginDetails()
     {
         return [
-            'name'        => 'rainlab.docs::lang.plugin.name',
-            'description' => 'rainlab.docs::lang.plugin.description',
+            'name'        => 'winter.docs::lang.plugin.name',
+            'description' => 'winter.docs::lang.plugin.description',
             'author'      => 'Ben Thomson',
             'icon'        => 'icon-tags',
-            'homepage'    => 'https://github.com/rainlab/docs-plugin'
+            'homepage'    => 'https://github.com/wintercms/docs-plugin',
+            'replaces'    => 'RainLab.Docs'
         ];
     }
 
@@ -31,10 +31,10 @@ class Plugin extends PluginBase
          * exists that can insert links there.
          */
         Event::listen('backend.page.beforeDisplay', function ($controller) {
-            $controller->addCss(url('plugins/rainlab/docs/assets/css/link.css'));
-            $controller->addJs(url('plugins/rainlab/docs/assets/js/linkInserter.js'), [
+            $controller->addCss(url('plugins/winter/docs/assets/css/link.css'));
+            $controller->addJs(url('plugins/winter/docs/assets/js/linkInserter.js'), [
                 'id' => 'docs-link',
-                'data-label' => Lang::get('rainlab.docs::lang.links.docsLink'),
+                'data-label' => Lang::get('winter.docs::lang.links.docsLink'),
             ]);
         });
     }
@@ -42,7 +42,7 @@ class Plugin extends PluginBase
     public function registerAssetBundles()
     {
         CombineAssets::registerCallback(function ($combiner) {
-            $combiner->registerBundle('~/plugins/rainlab/docs/assets/less/link.less');
+            $combiner->registerBundle('~/plugins/winter/docs/assets/less/link.less');
         });
     }
 }

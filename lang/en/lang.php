@@ -2,7 +2,7 @@
 return [
     'plugin' => [
         'name' => 'Docs',
-        'description' => 'Documentation suite for October CMS.'
+        'description' => 'Documentation suite for Winter CMS.'
     ],
     'titles' => [
         'documentation' => 'Documentation',
@@ -24,8 +24,8 @@ return [
         'success' => 'The documentation has been successfully updated.',
     ],
     'content' => [
-        'intro' => 'Welcome to the documentation for October CMS. Please click on one of the links to the left to
-            get more information about using October CMS and its wealth of features. If you wish to get the most
+        'intro' => 'Welcome to the documentation for Winter CMS. Please click on one of the links to the left to
+            get more information about using Winter CMS and its wealth of features. If you wish to get the most
             up-to-date documentation, please use the button below.'
     ]
 ];

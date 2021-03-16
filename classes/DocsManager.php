@@ -1,4 +1,4 @@
-<?php namespace RainLab\Docs\Classes;
+<?php namespace Winter\Docs\Classes;
 
 use ApplicationException;
 use Config;
@@ -8,7 +8,7 @@ use System\Classes\PluginManager;
 
 class DocsManager
 {
-    use \October\Rain\Support\Traits\Singleton;
+    use \Winter\Storm\Support\Traits\Singleton;
 
     /** @var array Plugins that have registered documentation */
     protected $plugins = [];
@@ -78,10 +78,10 @@ class DocsManager
             'source' => 'required|in:local,remote',
             'path' => 'required',
         ], [
-            'name' => 'rainlab.docs::lang.validation.docs.name',
-            'type' => 'rainlab.docs::lang.validation.docs.type',
-            'source' => 'rainlab.docs::lang.validation.docs.source',
-            'path' => 'rainlab.docs::lang.validation.docs.path',
+            'name' => 'winter.docs::lang.validation.docs.name',
+            'type' => 'winter.docs::lang.validation.docs.type',
+            'source' => 'winter.docs::lang.validation.docs.source',
+            'path' => 'winter.docs::lang.validation.docs.path',
         ]);
 
         if ($validator->fails()) {

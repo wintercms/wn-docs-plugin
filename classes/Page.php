@@ -1,4 +1,4 @@
-<?php namespace RainLab\Docs\Classes;
+<?php namespace Winter\Docs\Classes;
 
 use ApplicationException;
 use File;

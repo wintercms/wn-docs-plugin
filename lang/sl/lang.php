@@ -2,7 +2,7 @@
 return [
     'plugin' => [
         'name' => 'Dokumentacija',
-        'description' => 'Paket dokumentacije za October CMS',
+        'description' => 'Paket dokumentacije za Winter CMS',
     ],
     'titles' => [
         'documentation' => 'Dokumentacija',
@@ -24,6 +24,6 @@ return [
         'success' => 'Dokumentacija je bila uspešno posodobljena.',
     ],
     'content' => [
-        'intro' => 'Dobrodošli v dokumentaciji za October CMS. Kliknite eno od povezav na levi, da dobite več informacij o uporabi October CMS in bogastvu njegovih funkcij. Če želite dobiti najnovejšo dokumentacijo, uporabite spodnji gumb.',
+        'intro' => 'Dobrodošli v dokumentaciji za Winter CMS. Kliknite eno od povezav na levi, da dobite več informacij o uporabi Winter CMS in bogastvu njegovih funkcij. Če želite dobiti najnovejšo dokumentacijo, uporabite spodnji gumb.',
     ],
 ];

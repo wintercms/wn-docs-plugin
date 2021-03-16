@@ -1,4 +1,4 @@
-<?php namespace RainLab\Docs\Classes;
+<?php namespace Winter\Docs\Classes;
 
 use Backend;
 use File;
@@ -13,7 +13,7 @@ use Yaml;
  */
 class PagesList
 {
-    use \October\Rain\Support\Traits\Singleton;
+    use \Winter\Storm\Support\Traits\Singleton;
 
     /**
      * @var array Available pages, grouped by section and category.
