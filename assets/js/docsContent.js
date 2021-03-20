@@ -5,7 +5,7 @@
  * - Highlight.js (assets/vendor/hightlight/highlight.pack.js)
  */
 +function ($) { "use strict";
-    var Base = $.oc.foundation.base,
+    var Base = $.wn.foundation.base,
         BaseProto = Base.prototype;
 
     var HIGHLIGHT_CONFIG = {
@@ -19,7 +19,7 @@
 
         $(document).ready(function () {
             self.$el = $('#docs-content');
-            $.oc.foundation.controlUtils.markDisposable(self.$el.get(0));
+            $.wn.foundation.controlUtils.markDisposable(self.$el.get(0));
             self.init();
         });
     };
@@ -177,10 +177,13 @@
         return lastAnchor;
     };
 
+    if ($.wn === undefined) {
+        $.wn = {};
+    }
     if ($.oc === undefined) {
-        $.oc = {};
+        $.oc = $.wn;
     }
 
-    $.oc.docsContent = new DocsContent();
+    $.wn.docsContent = new DocsContent();
 
 }(window.jQuery);

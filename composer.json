@@ -1,7 +1,7 @@
 {
-    "name": "winter/docs-plugin",
+    "name": "winter/wn-docs-plugin",
     "type": "winter-plugin",
-    "description": "Documentation suite for Winter CMS.",
+    "description": "Read and manage documentation within Winter CMS",
     "homepage": "https://github.com/wintercms/wn-docs-plugin",
     "keywords": ["cms", "wintercms", "docs", "documentation", "api"],
     "license": "MIT",
@@ -10,11 +10,23 @@
             "name": "Ben Thomson",
             "email": "git@alfreido.com",
             "role": "Maintainer"
+        },
+        {
+            "name": "Winter CMS Maintainers",
+            "homepage": "https://wintercms.com",
+            "role": "Maintainer"
         }
     ],
+    "support": {
+        "issues": "https://github.com/wintercms/wn-docs-plugin/issues",
+        "discord": "https://discord.gg/D5MFSPH6Ux",
+        "source": "https://github.com/wintercms/wn-docs-plugin"
+    },
     "require": {
-        "php": ">=5.5.9",
+        "php": ">=7.0",
         "composer/installers": "~1.0"
     },
-    "minimum-stability": "dev"
+    "extra": {
+        "installer-name": "docs"
+    }
 }
