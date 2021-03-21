@@ -13,7 +13,7 @@ class Plugin extends PluginBase
         return [
             'name'        => 'winter.docs::lang.plugin.name',
             'description' => 'winter.docs::lang.plugin.description',
-            'author'      => 'Ben Thomson',
+            'author'      => 'Winter CMS',
             'icon'        => 'icon-tags',
             'homepage'    => 'https://github.com/wintercms/docs-plugin',
             'replaces'    => 'RainLab.Docs'
