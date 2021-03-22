@@ -50,20 +50,11 @@ class EventParser {
     {
         $parts = explode("\n", $doc);
 
-        // extract comment opening
-        $first = array_shift($parts);
+        // extract event line
+        $event = array_splice($parts, 1, 1);
 
-        // extract @event line
-        $event = array_shift($parts);
-
-        // extract comment closing
-        $last = array_pop($parts);
-
-        // put back comment opening
-        array_unshift($parts, $first);
-
-        // move @event tag at the end of the docblock to make it parsable
-        array_push($parts, $event, $last);
+        // insert before comment closing
+        array_splice($parts, count($parts)-1, 0, (array)$event);
 
         return implode("\n", $parts);
     }
