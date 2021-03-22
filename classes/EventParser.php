@@ -15,30 +15,26 @@ class EventParser {
         return static::$docBlockFactory;
     }
 
-    public static function getEvents($path, $prefix = null)
+    public static function getPathEvents($path, $prefix = null)
     {
         $events = [];
 
         foreach (File::allFiles($path) as $file) {
-            if ($fileEvents = static::getEvent($file, $prefix)) {
-                $events = array_merge($events, $fileEvents);
-            }
+            static::getFileEvents($events, $file, $prefix);
         }
 
         return $events;
     }
 
-    public static function getEvent($file, $prefix = null)
+    public static function getFileEvents(&$events, $file, $prefix = null)
     {
-        $events = [];
-
         $segments = explode('/', $prefix . $file->getRelativePathName());
         $trigger = implode('\\', array_map('ucfirst', $segments));
 
         $data = file_get_contents($file->getPathName());
 
         if (!preg_match_all('| +/\*\*\s+\* @event.+\*/|Us', $data, $match)) {
-            return null;
+            return;
         }
 
         $factory = static::getDocBlockFactory();
@@ -46,15 +42,16 @@ class EventParser {
         foreach ($match[0] as $doc) {
             $docblock = $factory->create(static::fixDocBlock($doc));
 
-            $events[] = [
+            $eventName = $docblock->getTagsByName('event')[0]->getDescription()->render();
+            $event = [
                 'triggeredIn' => $trigger,
-                'eventName' => $docblock->getTagsByName('event')[0]->getDescription()->render(),
+                'eventName' => $eventName,
                 'summary' => $docblock->getSummary(),
                 'description' => $docblock->getDescription()->render(),
             ];
-        }
 
-        return $events;
+            array_set($events, $eventName, $event);
+        }
     }
 
     protected static function fixDocBlock($doc)
