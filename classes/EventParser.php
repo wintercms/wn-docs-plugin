@@ -4,9 +4,13 @@ use File;
 
 class EventParser {
 
+    protected static $docBlockFactory;
+
     public static function getEvents($path, $prefix = null)
     {
         $events = [];
+
+        static::$docBlockFactory = \phpDocumentor\Reflection\DocBlockFactory::createInstance();
 
         foreach (File::allFiles($path) as $file) {
             if ($fileEvents = static::getEvent($file, $prefix)) {
@@ -30,12 +34,27 @@ class EventParser {
             return null;
         }
 
-        foreach ($match[0] as $ev) {
+        foreach ($match[0] as $doc) {
+            $docblock = static::$docBlockFactory->create(static::fixDocBlock($doc));
             $fileEvents[] = [
                 'triggeredIn' => $trigger,
-                'doc' => $ev
+                'eventName' => $event = $docblock->getTagsByName('event')[0]->getDescription()->render(),
+                'summary' => $docblock->getSummary(),
+                'description' => $docblock->getDescription()->render(),
             ];
         }
         return $fileEvents;
+    }
+
+    protected static function fixDocBlock($doc)
+    {
+        // move @event tag at the end of the docblock to make it parsable
+        $new = $parts = [];
+        $parts = explode("\n", $doc);
+        $new[] = $parts[0];
+        $new += array_slice($parts, 1, count($parts)-2);
+        $new[] = $parts[1];
+        $new[] = $parts[count($parts)-1];
+        return implode("\n", $new);
     }
 }
