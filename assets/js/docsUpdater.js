@@ -101,10 +101,13 @@
         }
     };
 
+    if ($.wn === undefined) {
+        $.wn = {};
+    }
     if ($.oc === undefined) {
-        $.oc = {};
+        $.oc = $.wn;
     }
 
-    $.oc.docsUpdater = new DocsUpdater();
+    $.wn.docsUpdater = new DocsUpdater();
 
 }(window.jQuery);

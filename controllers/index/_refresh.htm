@@ -45,7 +45,7 @@
                     <button
                         type="button"
                         class="btn btn-primary"
-                        onclick="$.oc.docsUpdater.retryUpdate()">
+                        onclick="$.wn.docsUpdater.retryUpdate()">
                         <?= e(trans('system::lang.updates.retry_label')) ?>
                     </button>
                     <button
@@ -79,6 +79,6 @@
 
 <script>
     $('#docsUpdatePopup').on('popupComplete', function() {
-        $.oc.docsUpdater.execute(<?= json_encode($updateSteps) ?>)
+        $.wn.docsUpdater.execute(<?= json_encode($updateSteps) ?>)
     })
 </script>
