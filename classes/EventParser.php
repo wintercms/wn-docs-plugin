@@ -4,25 +4,20 @@ use File;
 
 class EventParser {
 
-    public static function getEvents()
+    public static function getEvents($path, $prefix = null)
     {
         $events = [];
 
-        foreach (File::allFiles('/home/r4l/www/modules') as $file) {
-            if ($fileEvents = static::getEvent($file)) {
+        foreach (File::allFiles($path) as $file) {
+            if ($fileEvents = static::getEvent($file, $prefix)) {
                 $events = array_merge($events, $fileEvents);
             }
         }
 
-        foreach (File::allFiles('/home/r4l/www/vendor/winter/storm/src') as $file) {
-            if ($fileEvents = static::getEvent($file, 'Winter/Storm/')) {
-                $events = array_merge($events, $fileEvents);
-            }
-        }
         return $events;
     }
 
-    public static function getEvent($file, $prefix=null)
+    public static function getEvent($file, $prefix = null)
     {
         $fileEvents = [];
 
