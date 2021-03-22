@@ -4,13 +4,19 @@ use File;
 
 class EventParser {
 
-    protected static $docBlockFactory;
+    protected static $docBlockFactory = null;
+
+    protected static function getDocBlockFactory()
+    {
+        if (empty(static::$docBlockFactory)) {
+            static::$docBlockFactory = \phpDocumentor\Reflection\DocBlockFactory::createInstance();
+        }
+        return static::$docBlockFactory;
+    }
 
     public static function getEvents($path, $prefix = null)
     {
         $events = [];
-
-        static::$docBlockFactory = \phpDocumentor\Reflection\DocBlockFactory::createInstance();
 
         foreach (File::allFiles($path) as $file) {
             if ($fileEvents = static::getEvent($file, $prefix)) {
@@ -34,11 +40,14 @@ class EventParser {
             return null;
         }
 
+        $factory = static::getDocBlockFactory();
+
         foreach ($match[0] as $doc) {
-            $docblock = static::$docBlockFactory->create(static::fixDocBlock($doc));
+            $docblock = $factory->create(static::fixDocBlock($doc));
+
             $fileEvents[] = [
                 'triggeredIn' => $trigger,
-                'eventName' => $event = $docblock->getTagsByName('event')[0]->getDescription()->render(),
+                'eventName' => $docblock->getTagsByName('event')[0]->getDescription()->render(),
                 'summary' => $docblock->getSummary(),
                 'description' => $docblock->getDescription()->render(),
             ];
@@ -53,7 +62,7 @@ class EventParser {
         // extract event line
         $event = array_splice($parts, 1, 1);
 
-        // insert before comment closing
+        // insert before closing comment
         array_splice($parts, count($parts)-1, 0, (array)$event);
 
         return implode("\n", $parts);
