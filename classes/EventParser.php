@@ -48,13 +48,23 @@ class EventParser {
 
     protected static function fixDocBlock($doc)
     {
-        // move @event tag at the end of the docblock to make it parsable
-        $new = $parts = [];
         $parts = explode("\n", $doc);
-        $new[] = $parts[0];
-        $new += array_slice($parts, 1, count($parts)-2);
-        $new[] = $parts[1];
-        $new[] = $parts[count($parts)-1];
-        return implode("\n", $new);
+
+        // extract comment opening
+        $first = array_shift($parts);
+
+        // extract @event line
+        $event = array_shift($parts);
+
+        // extract comment closing
+        $last = array_pop($parts);
+
+        // put back comment opening
+        array_unshift($parts, $first);
+
+        // move @event tag at the end of the docblock to make it parsable
+        array_push($parts, $event, $last);
+
+        return implode("\n", $parts);
     }
 }
