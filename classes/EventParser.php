@@ -53,6 +53,6 @@ class EventParser {
         // remove comment closing line
         array_splice($parts, -1, 1);
 
-        return implode("\n", preg_replace('|\s+\*\s?|', '', $parts));
+        return implode("\n", preg_replace('|^\s+?\*\s?|', '', $parts));
     }
 }
