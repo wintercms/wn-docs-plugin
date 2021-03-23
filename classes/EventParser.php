@@ -49,8 +49,12 @@ class EventParser
 
     protected static function getEventDescription($doc)
     {
+        // filter out tags, the rest is our description
         $parts = preg_grep('/@(event|since)/', explode("\n", $doc), PREG_GREP_INVERT);
 
-        return implode("\n", preg_filter('|^\s+?\*\s?|', '', $parts));
+        // filter out open/close comment lines and '*' line prefix
+        $result = implode("\n", preg_filter('|^\s+?\*\s?|', '', $parts));
+
+        return $result;
     }
 }
