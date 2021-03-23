@@ -2,8 +2,8 @@
 
 use File;
 
-class EventParser {
-
+class EventParser
+{
     public static function getPathEvents($path, $prefix = null)
     {
         $events = [];
@@ -17,14 +17,14 @@ class EventParser {
 
     public static function getFileEvents(&$events, $file, $prefix = null)
     {
-        $segments = explode('/', $prefix . $file->getRelativePathName());
-        $trigger = implode('\\', array_map('ucfirst', $segments));
-
         $data = file_get_contents($file->getPathName());
 
         if (!preg_match_all('| +/\*\*\s+\* @event.+\*/|Us', $data, $match)) {
             return;
         }
+
+        $segments = explode('/', $prefix . $file->getRelativePathName());
+        $trigger = implode('\\', array_map('ucfirst', $segments));
 
         foreach ($match[0] as $doc) {
             if (!preg_match('|@event (.+?)$|m', $doc, $match)) {
