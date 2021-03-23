@@ -4,17 +4,6 @@ use File;
 
 class EventParser {
 
-    protected static $docBlockFactory = null;
-
-    protected static function getDocBlockFactory()
-    {
-        if (empty(static::$docBlockFactory)) {
-            static::$docBlockFactory = \phpDocumentor\Reflection\DocBlockFactory::createInstance();
-        }
-
-        return static::$docBlockFactory;
-    }
-
     public static function getPathEvents($path, $prefix = null)
     {
         $events = [];
@@ -37,33 +26,33 @@ class EventParser {
             return;
         }
 
-        $factory = static::getDocBlockFactory();
-
         foreach ($match[0] as $doc) {
-            $docblock = $factory->create(static::fixDocBlock($doc));
+            if (!preg_match('|@event (.+?)$|m', $doc, $match)) {
+                continue;
+            }
+            $eventName = $match[1];
+            $description = static::getEventDescription($doc);
 
-            $eventName = $docblock->getTagsByName('event')[0]->getDescription()->render();
             $event = [
                 'triggeredIn' => $trigger,
                 'eventName' => $eventName,
-                'summary' => $docblock->getSummary(),
-                'description' => $docblock->getDescription()->render(),
+                'description' => $description,
             ];
 
             array_set($events, $eventName, $event);
         }
     }
 
-    protected static function fixDocBlock($doc)
+    protected static function getEventDescription($doc)
     {
         $parts = explode("\n", $doc);
 
-        // extract @event line
-        $event = array_splice($parts, 1, 1);
+        // remove comment opening and @event line
+        array_splice($parts, 0, 2);
 
-        // insert @event before closing comment
-        array_splice($parts, count($parts)-1, 0, (array)$event);
+        // remove comment closing line
+        array_splice($parts, -1, 1);
 
-        return implode("\n", $parts);
+        return implode("\n", preg_replace('|\s+\*\s?|', '', $parts));
     }
 }
