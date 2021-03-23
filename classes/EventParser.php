@@ -36,8 +36,12 @@ class EventParser
             $event = [
                 'triggeredIn' => $trigger,
                 'eventName' => $eventName,
-                'description' => $description,
+                'description' => static::getEventDescription($doc),
             ];
+
+            if (preg_match('|@since (.+?)$|m', $doc, $match)) {
+                $event['since'] = $match[1];
+            }
 
             array_set($events, $eventName, $event);
         }
@@ -45,14 +49,8 @@ class EventParser
 
     protected static function getEventDescription($doc)
     {
-        $parts = explode("\n", $doc);
+        $parts = preg_grep('/@(event|since)/', explode("\n", $doc), PREG_GREP_INVERT);
 
-        // remove comment opening and @event line
-        array_splice($parts, 0, 2);
-
-        // remove comment closing line
-        array_splice($parts, -1, 1);
-
-        return implode("\n", preg_replace('|^\s+?\*\s?|', '', $parts));
+        return implode("\n", preg_filter('|^\s+?\*\s?|', '', $parts));
     }
 }
