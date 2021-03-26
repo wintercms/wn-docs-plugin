@@ -66,9 +66,9 @@ class EventParser
     {
         $result = [];
 
-        if (preg_match_all('|@param (.+?)$|m', $doc, $match)) {
-            foreach ($match[1] as $param) {
-                $result[] = $param;
+        if (preg_match_all('|@param (.+?)$|m', $doc, $matches)) {
+            foreach ($matches[1] as $match) {
+                $result[] = $match;
             }
         }
 
