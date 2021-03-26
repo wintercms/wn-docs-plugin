@@ -14,6 +14,16 @@
             <directory>./tests/cases</directory>
         </testsuite>
     </testsuites>
+
+    <coverage>
+        <include>
+            <directory suffix=".php">classes</directory>
+            <directory suffix=".php">controllers</directory>
+            <file>Plugin.php</file>
+            <file>routes.php</file>
+        </include>
+    </coverage>
+
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="CACHE_DRIVER" value="array"/>

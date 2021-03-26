@@ -72,5 +72,15 @@ jobs:
         run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
       - name: Run tests
+        if: matrix.phpVersion != '7.4' || matrix.operatingSystem != 'ubuntu-latest'
         working-directory: plugins/winter/docs
         run: ../../../vendor/bin/phpunit
+
+      - name: Run tests (and generate coverage report)
+        if: matrix.phpVersion == '7.4' && matrix.operatingSystem == 'ubuntu-latest'
+        env:
+            CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        working-directory: plugins/winter/docs
+        run: |
+            ../../../vendor/bin/phpunit --coverage-clover coverage.xml
+            bash <(curl -s https://codecov.io/bash)
