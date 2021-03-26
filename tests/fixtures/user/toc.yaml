@@ -1,6 +1,9 @@
 pages:
   - path: index.md
     title: Index
+  - path: hidden/hidden-page.md
+    title: Hidden page
+    hidden: true
   - sections:
       Pages:
         - path: pages/page-1.md
