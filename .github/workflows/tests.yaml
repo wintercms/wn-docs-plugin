@@ -23,7 +23,7 @@ jobs:
       - name: Checkout Winter CMS
         uses: actions/checkout@v2
         with:
-          repository: https://github.com/wintercms/winter.git
+          repository: wintercms/winter
           ref: refs/head/develop
 
       - name: Checkout plugin
