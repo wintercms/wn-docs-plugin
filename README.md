@@ -2,6 +2,7 @@
 
 ![GitHub branch checks state](https://img.shields.io/github/checks-status/wintercms/wn-docs-plugin/main?label=tests&style=flat-square)
 ![Codecov](https://img.shields.io/codecov/c/github/wintercms/wn-docs-plugin?style=flat-square)
+![Discord](https://img.shields.io/discord/816852513684193281?label=discord&style=flat-square)
 
 Integrates a full suite of documentation direct into your Winter CMS installation.
 
