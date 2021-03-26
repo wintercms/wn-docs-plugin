@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: wintercms/winter
-          ref: refs/head/develop
+          ref: develop
 
       - name: Checkout plugin
         uses: actions/checkout@v2
