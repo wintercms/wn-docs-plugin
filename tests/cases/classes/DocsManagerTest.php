@@ -36,4 +36,22 @@ class DocsManagerTest extends TestCase
             $this->docsManager->makeIdentifier('Winter', 'Docs.TEST')
         );
     }
+
+    public function testAddDocumentation()
+    {
+        $this->assertFalse($this->docsManager->hasDocumentation('Docs.Test', 'user'));
+
+        $this->docsManager->addDocumentation('Docs.Test', 'user', [
+            'name' => 'User Documentation',
+            'type' => 'user',
+            'source' => 'local',
+            'path' => dirname(dirname(__DIR__)) . '/fixtures/user'
+        ]);
+
+        $this->assertTrue($this->docsManager->hasDocumentation('Docs.Test', 'user'));
+
+        $this->docsManager->removeDocumentation('Docs.Test', 'user');
+
+        $this->assertFalse($this->docsManager->hasDocumentation('Docs.Test', 'user'));
+    }
 }

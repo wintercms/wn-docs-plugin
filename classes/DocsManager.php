@@ -74,7 +74,7 @@ class DocsManager
         // Validate documentation
         $validator = Validator::make($config, [
             'name' => 'required',
-            'type' => 'required|in:user,developer,api',
+            'type' => 'required|in:user,developer,api,events',
             'source' => 'required|in:local,remote',
             'path' => 'required',
         ], [
@@ -103,6 +103,32 @@ class DocsManager
         $this->registered[$this->makeIdentifier($owner, $code)] = $config;
 
         return true;
+    }
+
+    /**
+     * Removes a specified documentation, if registered.
+     *
+     * @param string $owner
+     * @param string $code
+     * @return void
+     */
+    public function removeDocumentation(string $owner, string $code)
+    {
+        if ($this->hasDocumentation($owner, $code)) {
+            unset($this->registered[$this->makeIdentifier($owner, $code)]);
+        }
+    }
+
+    /**
+     * Checks if a specified documentation has been registered.
+     *
+     * @param string $owner
+     * @param string $code
+     * @return boolean
+     */
+    public function hasDocumentation(string $owner, string $code): bool
+    {
+        return array_key_exists($this->makeIdentifier($owner, $code), $this->registered);
     }
 
     /**

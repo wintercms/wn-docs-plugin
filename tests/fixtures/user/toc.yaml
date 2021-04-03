@@ -1,0 +1,13 @@
+pages:
+  - path: index.md
+    title: Index
+  - path: hidden/hidden-page.md
+    title: Hidden page
+    hidden: true
+  - sections:
+      Pages:
+        - path: pages/page-1.md
+        - path: pages/page-2.md
+          title: Page Two
+      Help:
+        - path: help/support.md
