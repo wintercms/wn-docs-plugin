@@ -55,7 +55,7 @@ class EventParser
     {
         $result = null;
 
-        if (preg_match('|@event (.+?)$|m', $doc, $match)) {
+        if (preg_match('/@event (.+?)$/m', $doc, $match)) {
             $result = $match[1];
         }
 
@@ -66,7 +66,7 @@ class EventParser
     {
         $result = [];
 
-        if (preg_match_all('|@param (.+?)$|m', $doc, $matches)) {
+        if (preg_match_all('/@param (.+?)$/m', $doc, $matches)) {
             foreach ($matches[1] as $match) {
                 $result[] = $match;
             }
@@ -79,7 +79,7 @@ class EventParser
     {
         $result = null;
 
-        if (preg_match('|@since (.+?)$|m', $doc, $match)) {
+        if (preg_match('/@since (.+?)$/m', $doc, $match)) {
             $result = $match[1];
         }
 
