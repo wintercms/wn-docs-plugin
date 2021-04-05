@@ -9,7 +9,9 @@ class EventParser
         $events = [];
 
         foreach (File::allFiles($path) as $file) {
-            static::getFileEvents($events, $file, $prefix);
+            if (ends_with($file->getFilename(), '.php')) {
+                static::getFileEvents($events, $file, $prefix);
+            }
         }
 
         return $events;
@@ -20,7 +22,7 @@ class EventParser
         $data = file_get_contents($file->getPathName());
 
         // find all event docblocks in that file
-        if (!preg_match_all('/ +?\/\*\*\s+?\* @event.+\*\//s', $data, $matches)) {
+        if (!preg_match_all('/ +?\/\*\*\s+?\* @event.+?\*\//s', $data, $matches)) {
             return;
         }
 
@@ -53,9 +55,12 @@ class EventParser
 
     public static function getEventDescription($doc)
     {
-        $result = preg_filter(['/^\s+?\/\*\*$/m', '/@event .+$/m', '/@\w+ [^@]+/s', '/^\s+?\*\//m'], '', $doc);
-        $result = preg_filter(['/\s+?\*\s*?$/m'], "\n", $result);
-        $result = preg_filter(['/^ +?\* /m'], '', $result);
+        // filter out opening comment and tag names
+        $result = preg_filter(['/^\s*?\/\*\*\s*?$/m', '/@(event|since) .+$/m', '/@param [^@]+/s'], '', $doc);
+
+        // filter out spaces and asterisk prefix
+        $result = preg_filter(['/\s+?\*\s*?$/m', '/^ +?\* /m'], ["\n", ''], $result);
+
         return trim($result);
     }
 
