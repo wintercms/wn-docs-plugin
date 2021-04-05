@@ -51,7 +51,15 @@ class EventParser
         }
     }
 
-    protected static function getEventTag($doc)
+    public static function getEventDescription($doc)
+    {
+        $result = preg_filter(['#^\s+?/\*\*$#m', '/@event .+$/m', '/@\w+ ([^@]+)/s', '#^\s+?\*/#m'], '', $doc);
+        $result = preg_filter(['#\s+?\*\s*?$#m'], "\n", $result);
+        $result = preg_filter(['#^ +?\* #m'], '', $result);
+        return trim($result);
+    }
+
+    public static function getEventTag($doc)
     {
         $result = null;
 
@@ -62,37 +70,26 @@ class EventParser
         return $result;
     }
 
-    protected static function getParamTag($doc)
+    public static function getParamTag($doc)
     {
         $result = [];
 
-        if (preg_match_all('/@param (.+?)$/m', $doc, $matches)) {
+        if (preg_match_all('/@param ([^@]+)/s', $doc, $matches)) {
             foreach ($matches[1] as $match) {
-                $result[] = $match;
+                $result[] = trim(preg_filter('/[\t ]+?\*(\s|\/)/', '', $match));
             }
         }
 
         return $result;
     }
 
-    protected static function getSinceTag($doc)
+    public static function getSinceTag($doc)
     {
         $result = null;
 
         if (preg_match('/@since (.+?)$/m', $doc, $match)) {
             $result = $match[1];
         }
-
-        return $result;
-    }
-
-    protected static function getEventDescription($doc)
-    {
-        // filter out tags, the rest is our description
-        $parts = preg_grep('/@\w+/', explode("\n", $doc), PREG_GREP_INVERT);
-
-        // filter out open/close comment lines and '*' line prefix
-        $result = implode("\n", preg_filter('/^\s+?\*(\s|$)/', '', $parts));
 
         return $result;
     }
