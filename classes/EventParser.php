@@ -20,7 +20,7 @@ class EventParser
         $data = file_get_contents($file->getPathName());
 
         // find all event docblocks in that file
-        if (!preg_match_all('| +/\*\*\s+\* @event.+\*/|Us', $data, $matches)) {
+        if (!preg_match_all('/ +?\/\*\*\s+?\* @event.+\*\//s', $data, $matches)) {
             return;
         }
 
@@ -53,9 +53,9 @@ class EventParser
 
     public static function getEventDescription($doc)
     {
-        $result = preg_filter(['#^\s+?/\*\*$#m', '/@event .+$/m', '/@\w+ ([^@]+)/s', '#^\s+?\*/#m'], '', $doc);
-        $result = preg_filter(['#\s+?\*\s*?$#m'], "\n", $result);
-        $result = preg_filter(['#^ +?\* #m'], '', $result);
+        $result = preg_filter(['/^\s+?\/\*\*$/m', '/@event .+$/m', '/@\w+ [^@]+/s', '/^\s+?\*\//m'], '', $doc);
+        $result = preg_filter(['/\s+?\*\s*?$/m'], "\n", $result);
+        $result = preg_filter(['/^ +?\* /m'], '', $result);
         return trim($result);
     }
 
