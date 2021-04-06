@@ -29,6 +29,12 @@ class EventParser
         $segments = explode('/', $prefix . $file->getRelativePathName());
         $trigger = implode('\\', array_map('ucfirst', $segments));
 
+        $classPath = 'winter/tree/develop/modules/';
+        if ($prefix === 'winter/storm/') {
+            $classPath = 'storm/tree/develop/src/';
+        }
+        $classPath .= $file->getRelativePathName();
+
         foreach ($matches[0] as $doc) {
             // extract the event name
             if (!$eventName = static::getEventTag($doc)) {
@@ -37,6 +43,7 @@ class EventParser
 
             $event = [
                 'triggeredIn' => $trigger,
+                'classPath' => $classPath,
                 'eventName' => $eventName,
                 'description' => static::getEventDescription($doc),
             ];
