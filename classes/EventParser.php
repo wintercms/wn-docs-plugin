@@ -22,7 +22,7 @@ class EventParser
         $data = file_get_contents($file->getPathName());
 
         // find all event docblocks in that file
-        if (!preg_match_all('/ +?\/\*\*\s+?\* @event.+?\*\//s', $data, $matches)) {
+        if (!preg_match_all('/ +?\/\*\*\s+?\* @event.+?\*\//s', $data, $matches, PREG_OFFSET_CAPTURE)) {
             return;
         }
 
@@ -35,7 +35,12 @@ class EventParser
         }
         $classPath .= $file->getRelativePathName();
 
-        foreach ($matches[0] as $doc) {
+        foreach ($matches[0] as $match) {
+            $doc = $match[0];
+            $offset = $match[1];
+            $startLine = substr_count(substr($data, 0, $offset), "\n") + 1;
+            $endLine = $startLine + substr_count($doc, "\n");
+
             // extract the event name
             if (!$eventName = static::getEventTag($doc)) {
                 continue;
@@ -43,7 +48,7 @@ class EventParser
 
             $event = [
                 'triggeredIn' => $trigger,
-                'classPath' => $classPath,
+                'classPath' => $classPath . '#L' . $startLine . ',L' . ($endLine),
                 'eventName' => $eventName,
                 'description' => static::getEventDescription($doc),
             ];
