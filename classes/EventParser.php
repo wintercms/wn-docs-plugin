@@ -67,8 +67,8 @@ class EventParser
 
     public static function getEventDescription($doc)
     {
-        // filter out opening comment and tag names
-        $result = preg_filter(['/^\s*?\/\*\*\s*?$/m', '/@(event|since) .+$/m', '/@param [^@]+/s'], '', $doc);
+        // filter out opening/closing comment and tag names
+        $result = preg_filter(['/^\s*?\/\*\*\s*?$/m', '/\s*\*\/$/s', '/@(event|since) .+$/m', '/@param [^@]+/s'], '', $doc);
 
         // filter out spaces and asterisk prefix
         $result = preg_filter(['/\s+?\*\s*?$/m', '/^ +?\* /m'], ["\n", ''], $result);
