@@ -31,7 +31,7 @@ class Index extends \Backend\Classes\Controller
     /**
      * @var string The ZIP file to download the documentation source.
      */
-    protected $docsRepoZip = 'https://github.com/wintercms/docs/archive/master.zip';
+    protected $docsRepoZip = 'https://github.com/wintercms/docs/archive/main.zip';
 
     /**
      * @var string Temporary storage directory.
@@ -210,8 +210,8 @@ class Index extends \Backend\Classes\Controller
         $destFolder = $this->tempDirectory;
 
         // Remove old extract folder if it exists
-        if (File::exists($destFolder . '/docs-master')) {
-            File::deleteDirectory($destFolder . '/docs-master');
+        if (File::exists($destFolder . '/docs-main')) {
+            File::deleteDirectory($destFolder . '/docs-main');
         }
 
         if (!Zip::extract($tempPath, $destFolder)) {
@@ -236,7 +236,7 @@ class Index extends \Backend\Classes\Controller
     protected function renderDocs()
     {
         $renderDir = $this->getRenderDirectory();
-        $tempFolder = $this->getTempDirectory() . '/docs-master';
+        $tempFolder = $this->getTempDirectory() . '/docs-main';
 
         // Clear out old rendered docs
         if (count(File::files($renderDir)) > 0) {
