@@ -31,7 +31,7 @@ class Index extends \Backend\Classes\Controller
     /**
      * @var string The ZIP file to download the documentation source.
      */
-    protected $docsRepoZip = 'https://github.com/wintercms/docs/archive/master.zip';
+    protected $docsRepoZip = 'https://github.com/wintercms/docs/archive/main.zip';
 
     /**
      * @var string Temporary storage directory.
