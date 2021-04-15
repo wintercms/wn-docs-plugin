@@ -13,7 +13,7 @@ Integrates a full suite of documentation direct into your Winter CMS installatio
 To install the plugin, you may install it through the [Winter CMS Marketplace](https://github.com/wintercms/wn-docs-plugin), or you may install it using Composer:
 
 ```bash
-composer require winter/docs-plugin
+composer require winter/wn-docs-plugin
 ```
 
 Then, run the migrations to ensure the plugin is enabled:
