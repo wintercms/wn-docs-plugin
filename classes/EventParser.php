@@ -37,6 +37,7 @@ class EventParser
 
         foreach ($matches[0] as $match) {
             $doc = $match[0];
+
             $offset = $match[1];
             $startLine = substr_count(substr($data, 0, $offset), PHP_EOL) + 1;
             $endLine = $startLine + substr_count($doc, PHP_EOL);
@@ -68,7 +69,7 @@ class EventParser
     public static function getEventDescription($doc)
     {
         // replace EOL for multi-platform compatibility
-        $result = preg_filter(["/\r/", "/\n/"], ['', PHP_EOL], $doc);
+        $result = preg_filter(['/\r/', '/\n/'], ['', PHP_EOL], $doc);
 
         // filter out opening/closing comment and tag names
         $result = preg_filter(['/^\s*?\/\*\*\s*?$/m', '/\s*\*\/$/s', '/@(event|since) .+$/m', '/@param [^@]+/s'], '', $result);
@@ -83,6 +84,9 @@ class EventParser
     {
         $result = null;
 
+        // replace EOL for multi-platform compatibility
+        $doc = preg_filter(['/\r/', '/\n/'], ['', PHP_EOL], $doc);
+
         if (preg_match('/@event (.+?)$/m', $doc, $match)) {
             $result = trim($match[1]);
         }
@@ -93,6 +97,9 @@ class EventParser
     public static function getParamTag($doc)
     {
         $result = [];
+
+        // replace EOL for multi-platform compatibility
+        $doc = preg_filter(['/\r/', '/\n/'], ['', PHP_EOL], $doc);
 
         if (preg_match_all('/@param ([^@]+)/s', $doc, $matches)) {
             foreach ($matches[1] as $match) {
@@ -106,6 +113,9 @@ class EventParser
     public static function getSinceTag($doc)
     {
         $result = null;
+
+        // replace EOL for multi-platform compatibility
+        $doc = preg_filter(['/\r/', '/\n/'], ['', PHP_EOL], $doc);
 
         if (preg_match('/@since (.+?)$/m', $doc, $match)) {
             $result = trim($match[1]);
