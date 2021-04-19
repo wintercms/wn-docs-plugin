@@ -38,8 +38,8 @@ class EventParser
         foreach ($matches[0] as $match) {
             $doc = $match[0];
             $offset = $match[1];
-            $startLine = substr_count(substr($data, 0, $offset), "\n") + 1;
-            $endLine = $startLine + substr_count($doc, "\n");
+            $startLine = substr_count(substr($data, 0, $offset), PHP_EOL) + 1;
+            $endLine = $startLine + substr_count($doc, PHP_EOL);
 
             // extract the event name
             if (!$eventName = static::getEventTag($doc)) {
