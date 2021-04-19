@@ -14,7 +14,7 @@ class EventParserTest extends TestCase
     public function testGetEventDescription()
     {
         $this->assertEquals(
-            "Determines file changes between the specified build and the previous build.\n\nWill return an array of added, modified and removed files.",
+            "Determines file changes between the specified build and the previous build.".PHP_EOL.PHP_EOL."Will return an array of added, modified and removed files.",
             EventParser::getEventDescription($this->eventDocBlock)
         );
     }
@@ -44,7 +44,7 @@ class EventParserTest extends TestCase
             $params[0]
         );
         $this->assertEquals(
-            "string|integer \$previous This is my second multi-line param,\n it stretches on two lines.",
+            "string|integer \$previous This is my second multi-line param,".PHP_EOL." it stretches on two lines.",
             $params[1]
         );
     }

@@ -74,7 +74,7 @@ class EventParser
         $result = preg_filter(['/\s+?\*\s*?$/m', '/^ +?\* /m'], ["\n", ''], $result);
 
         // each note is a paragraph
-        $result = preg_replace("/(>[^>]+)\n/s", "$1\n\n", $result);
+        $result = preg_replace("/(>[^>]+)".PHP_EOL . "/s", "$1".PHP_EOL.PHP_EOL, $result);
 
         return trim($result);
     }
@@ -84,7 +84,7 @@ class EventParser
         $result = null;
 
         if (preg_match('/@event (.+?)$/m', $doc, $match)) {
-            $result = $match[1];
+            $result = trim($match[1]);
         }
 
         return $result;
@@ -108,7 +108,7 @@ class EventParser
         $result = null;
 
         if (preg_match('/@since (.+?)$/m', $doc, $match)) {
-            $result = $match[1];
+            $result = trim($match[1]);
         }
 
         return $result;
