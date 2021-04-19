@@ -2,7 +2,7 @@
      * @event my.test.event
      *   
      * Determines file changes between the specified build and the previous build.
-     *   
+     *
      * Will return an array of added, modified and removed files.
 	*
      * @since v1.1.2
