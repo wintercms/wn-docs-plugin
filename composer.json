@@ -24,7 +24,6 @@
     },
     "require": {
         "php": ">=7.0",
-        "phpdocumentor/reflection-docblock": "^5.2",
         "composer/installers": "~1.0"
     },
     "extra": {
