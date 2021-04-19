@@ -73,6 +73,9 @@ class EventParser
         // filter out spaces and asterisk prefix
         $result = preg_filter(['/\s+?\*\s*?$/m', '/^ +?\* /m'], ["\n", ''], $result);
 
+        // each note is a paragraph
+        $result = preg_replace("/(>[^>]+)\n/s", "$1\n\n", $result);
+
         return trim($result);
     }
 
