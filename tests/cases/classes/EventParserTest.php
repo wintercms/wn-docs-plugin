@@ -13,8 +13,13 @@ class EventParserTest extends TestCase
 
     public function testGetEventDescription()
     {
+        $expect =<<<EOS
+Determines file changes between the specified build and the previous build.
+
+Will return an array of added, modified and removed files.
+EOS;
         $this->assertEquals(
-            "Determines file changes between the specified build and the previous build.".PHP_EOL.PHP_EOL."Will return an array of added, modified and removed files.",
+            $expect,
             EventParser::getEventDescription($this->eventDocBlock)
         );
     }
