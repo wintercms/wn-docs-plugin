@@ -71,7 +71,7 @@ class EventParser
         $result = preg_filter(['/^\s*?\/\*\*\s*?$/m', '/\s*\*\/$/s', '/@(event|since) .+$/m', '/@param [^@]+/s'], '', $doc);
 
         // filter out spaces and asterisk prefix
-        $result = preg_filter(['/\s+?\*\s*?$/m', '/^ +?\* /m'], ["\n", ''], $result);
+        $result = preg_filter(['/\s+?\*\s*?$/m', '/^ +?\* /m'], [PHP_EOL, ''], $result);
 
         // each note is a paragraph
         $result = preg_replace("/(>[^>]+)".PHP_EOL . "/s", "$1".PHP_EOL.PHP_EOL, $result);
