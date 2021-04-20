@@ -69,7 +69,7 @@ class EventParser
     public static function getEventDescription($doc)
     {
         // replace EOL for multi-platform compatibility
-        $result = preg_filter(['/\r/', '/\n/'], ['', PHP_EOL], $doc);
+        $result = str_replace(["\r\n", "\r", "\n"], PHP_EOL, $doc);
 
         // filter out opening/closing comment and tag names
         $result = preg_filter(['/^\s*?\/\*\*\s*?$/m', '/\s*\*\/$/s', '/@(event|since) .+$/m', '/@param [^@]+/s'], '', $result);
