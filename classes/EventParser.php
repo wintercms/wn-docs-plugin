@@ -77,6 +77,9 @@ class EventParser
         // filter out spaces and asterisk prefix
         $result = preg_filter(['/\s+?\*\s*?$/m', '/^ +?\* /m'], [PHP_EOL, ''], $result);
 
+        // each note its own blockquote
+        $result = preg_replace("/(> \*\*Note)/", "\n\n<span></span>\n\n$1", $result);
+
         return trim($result);
     }
 
