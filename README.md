@@ -6,8 +6,6 @@
 
 Integrates a full suite of documentation direct into your Winter CMS installation.
 
-![Screenshot](./.github/screenshot.png?raw=true)
-
 ## Getting started
 
 To install the plugin, you may install it through the [Winter CMS Marketplace](https://github.com/wintercms/wn-docs-plugin), or you may install it using Composer:
