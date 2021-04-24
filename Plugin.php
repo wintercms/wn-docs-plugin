@@ -15,7 +15,7 @@ class Plugin extends PluginBase
             'description' => 'winter.docs::lang.plugin.description',
             'author'      => 'Winter CMS',
             'icon'        => 'icon-tags',
-            'homepage'    => 'https://github.com/wintercms/docs-plugin',
+            'homepage'    => 'https://github.com/wintercms/wn-docs-plugin',
             'replaces'    => 'RainLab.Docs'
         ];
     }
