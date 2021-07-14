@@ -17,6 +17,12 @@ use Docs\Test\Utilities\{
  */
 class Mysql extends BaseDb implements DbContract
 {
+    /** Whether this MySQL query should be treated as safe */
+    const MYSQL_SAFE = 1;
+
+    /** Run query in a statement */
+    const MYSQL_STMT = 2;
+
     /**
      * Query cache.
      *
