@@ -623,9 +623,49 @@ class ApiParser
      */
     protected function processInheritance()
     {
-        foreach ($this->classes as $name => $class)
+        foreach ($this->classes as $name => &$class)
         {
+            if ($class['type'] === 'interface' || $class['type'] === 'trait') {
+                // Traits and interfaces do not inherit anything
+                continue;
+            }
 
+            if (
+                is_null($class['extends'])
+                && !count($class['traits'])
+                && !count($class['implements'])
+            ) {
+                // No inheritance for this class
+                $class['inherited'] = [
+                    'properties' => [],
+                    'constants' => [],
+                    'methods' => [],
+                ];
+                continue;
+            }
+
+            // Get extending class methods
+            if (!is_null($class['extends']) && isset($this->classes[$class['extends']])) {
+                $this->processSingleInheritance($class, $this->classes[$class['extends']]);
+            }
+        }
+    }
+
+    protected function processSingleInheritance(array &$child, array $parent)
+    {
+        // Find out if the parent also inherits anything
+        if (
+            $parent['type'] === 'class'
+            && (
+                !is_null($parent['extends'])
+                || count($parent['traits'])
+                || count($parent['implements'])
+            )
+        ) {
+            // Get extending class methods
+            if (!is_null($parent['extends']) && isset($this->classes[$parent['extends']])) {
+                $this->processSingleInheritance($child, $this->classes[$parent['extends']]);
+            }
         }
     }
 }

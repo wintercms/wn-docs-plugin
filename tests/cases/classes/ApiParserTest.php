@@ -19,7 +19,7 @@ class ApiParserTest extends TestCase
 
     public function testGetPaths()
     {
-        $this->assertCount(6, $this->apiParser->getPaths());
+        $this->assertCount(7, $this->apiParser->getPaths());
 
         $fixturePath = dirname(dirname(__DIR__)) . '/fixtures/';
         $filenames = $this->apiParser->getPaths();
@@ -29,6 +29,7 @@ class ApiParserTest extends TestCase
             $fixturePath . 'api/contracts/Db.php',
             $fixturePath . 'api/database/BaseDb.php',
             $fixturePath . 'api/database/Mysql.php',
+            $fixturePath . 'api/database/Mysqli.php',
             $fixturePath . 'utilities/traits/IsUtility.php',
             $fixturePath . 'utilities/utilities/NumberUtility.php',
             $fixturePath . 'utilities/utilities/StringUtility.php',
@@ -55,12 +56,13 @@ class ApiParserTest extends TestCase
         $classes = $this->apiParser->getClasses();
         $classNames = array_keys($classes);
         sort($classNames, SORT_NATURAL);
-        $this->assertCount(6, $classes);
+        $this->assertCount(7, $classes);
 
         $this->assertEquals([
             'Docs\\Api\\Contracts\\Db',
             'Docs\\Api\\Database\\BaseDb',
             'Docs\\Api\\Database\\Mysql',
+            'Docs\\Api\\Database\\Mysqli',
             'Docs\\Utilities\\Traits\\IsUtility',
             'Docs\\Utilities\\Utilities\\NumberUtility',
             'Docs\\Utilities\\Utilities\\StringUtility',
