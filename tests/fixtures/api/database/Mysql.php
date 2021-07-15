@@ -1,8 +1,7 @@
-<?php namespace Docs\Test\Database;
+<?php namespace Docs\Api\Database;
 
-use BaseDb;
-use Docs\Test\Contracts\Db as DbContract;
-use Docs\Test\Utilities\{
+use Docs\Api\Contracts\Db as DbContract;
+use Docs\Utilities\Utilities\{
     StringUtility,
     NumberUtility
 };
@@ -44,5 +43,15 @@ class Mysql extends BaseDb implements DbContract
     public function query(string $statement, array $params = [])
     {
         return [];
+    }
+
+    /**
+     * Closes the MySQL connection.
+     *
+     * @return void
+     */
+    public function close()
+    {
+
     }
 }

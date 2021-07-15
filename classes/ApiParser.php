@@ -24,8 +24,8 @@ use Winter\Storm\Halcyon\Datasource\FileDatasource;
  */
 class ApiParser
 {
-    /** @var string Base path where files will be read */
-    protected $basePath;
+    /** @var array Base paths where files will be read */
+    protected $basePaths;
 
     /** @var array List of file paths found */
     protected $paths = [];
@@ -45,11 +45,11 @@ class ApiParser
     /**
      * Constructor.
      *
-     * @param string $basePath
+     * @param array|string $basePath
      */
-    public function __construct(string $basePath)
+    public function __construct($basePaths = [])
     {
-        $this->basePath = $basePath;
+        $this->basePaths = (is_string($basePaths)) ? [$basePaths] : $basePaths;
     }
 
     /**
@@ -66,10 +66,10 @@ class ApiParser
         foreach ($this->getPaths() as $file) {
             // Parse PHP file
             try {
-                $parsed = $parser->parse($file['content']);
+                $parsed = $parser->parse(file_get_contents($file));
             } catch (Error $error) {
                 $this->failedPaths[] = [
-                    'path' => $file['fileName'],
+                    'path' => $file,
                     'error' => $error->getMessage()
                 ];
                 continue;
@@ -80,7 +80,7 @@ class ApiParser
             if (is_null($namespace)) {
                 $namespace = '__GLOBAL__';
             } else {
-                $namespace = $namespace->name;
+                $namespace = (string) $namespace->name;
             }
             if (!in_array($namespace, $this->namespaces)) {
                 $this->namespaces[] = $namespace;
@@ -91,31 +91,48 @@ class ApiParser
             $groupedUses = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\GroupUse::class);
             $uses = $this->parseUseCases($namespace, $singleUses, $groupedUses);
 
-            // Ensure that we are dealing with a single class
-            $classes = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\Class_::class);
+            // Ensure that we are dealing with a single class, trait or interface
+            $objects = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\Class_::class);
+            $objects = array_merge($objects, $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\Trait_::class));
+            $objects = array_merge($objects, $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\Interface_::class));
 
-            if (!count($classes)) {
+            if (!count($objects)) {
                 $this->failedPaths[] = [
-                    'path' => $file['fileName'],
-                    'error' => 'No class definition found.',
+                    'path' => $file,
+                    'error' => 'No object definition found.',
                 ];
                 continue;
-            } else if (count($classes) > 1) {
+            } else if (count($objects) > 1) {
                 $this->failedPaths[] = [
-                    'path' => $file['fileName'],
-                    'error' => 'More than one class definition exists in this path.',
+                    'path' => $file,
+                    'error' => 'More than one object definition exists in this path.',
                 ];
                 continue;
             }
 
-            $class = $this->parseClassNode($classes[0], $namespace, $uses);
-            $class['path'] = $file['fileName'];
+            // Parse the objects
+            switch (get_class($objects[0])) {
+                case \PhpParser\Node\Stmt\Class_::class:
+                    $class = $this->parseClassNode($objects[0], $namespace, $uses);
+                    break;
+                case \PhpParser\Node\Stmt\Trait_::class:
+                    $class = $this->parseTraitNode($objects[0], $namespace, $uses);
+                    break;
+                case \PhpParser\Node\Stmt\Interface_::class:
+                    $class = $this->parseInterfaceNode($objects[0], $namespace, $uses);
+                    break;
+            }
+
+            $class['path'] = $file;
             $this->classes[$class['class']] = $class;
         }
+
+        // Once we've parsed the classes, we need to determine inheritance
+        $this->processInheritance();
     }
 
     /**
-     * List all paths found in base path.
+     * List all paths found in the base paths.
      *
      * This method is cached after the first call.
      *
@@ -129,15 +146,22 @@ class ApiParser
             return $this->paths;
         }
 
-        $ds = new FileDatasource(
-            $this->basePath,
-            new Filesystem()
-        );
+        $paths = [];
 
-        return $this->paths = $ds->select('/', [
-            'columns' => 'fileName',
-            'extensions' => ['php']
-        ]);
+        foreach ($this->basePaths as $basePath) {
+            $ds = new FileDatasource(
+                $basePath,
+                new Filesystem()
+            );
+
+            $paths = array_merge($paths, array_map(function ($path) use ($basePath) {
+                return $basePath . '/' . $path['fileName'];
+            }, $ds->select('/', [
+                'extensions' => ['php']
+            ])));
+        }
+
+        return $this->paths = $paths;
     }
 
     /**
@@ -242,9 +266,72 @@ class ApiParser
 
         return [
             'name' => $name,
+            'type' => 'class',
             'class' => $fqClass,
             'extends' => $extends,
             'implements' => $implements,
+            'traits' => $this->parseClassTraits($class, $namespace, $uses),
+            'docs' => $docs,
+            'final' => $class->isFinal(),
+            'abstract' => $class->isAbstract(),
+            'constants' => $this->parseClassConstants($class, $namespace, $uses),
+            'properties' => $this->parseClassProperties($class, $namespace, $uses),
+            'methods' => $this->parseClassMethods($class, $namespace, $uses),
+        ];
+    }
+
+    /**
+     * Parse an interface node and extract constants, properties and methods.
+     *
+     * @param \PhpParser\Node\Stmt\Interface_ $class
+     * @param string $namespace
+     * @param array $uses
+     * @return array
+     */
+    protected function parseInterfaceNode(\PhpParser\Node\Stmt\Interface_ $class, string $namespace, array $uses = [])
+    {
+        $name = (string) $class->name;
+        $fqClass = $namespace . '\\' . $class->name;
+
+        if (!is_null($class->getDocComment())) {
+            $docs = $this->parseDocBlock($class->getDocComment(), $namespace, $uses);
+        } else {
+            $docs = null;
+        }
+
+        return [
+            'name' => $name,
+            'type' => 'interface',
+            'class' => $fqClass,
+            'docs' => $docs,
+            'constants' => $this->parseClassConstants($class, $namespace, $uses),
+            'methods' => $this->parseClassMethods($class, $namespace, $uses),
+        ];
+    }
+
+    /**
+     * Parse a trait node and extract constants, properties and methods.
+     *
+     * @param \PhpParser\Node\Stmt\Trait_ $class
+     * @param string $namespace
+     * @param array $uses
+     * @return array
+     */
+    protected function parseTraitNode(\PhpParser\Node\Stmt\Trait_ $class, string $namespace, array $uses = [])
+    {
+        $name = (string) $class->name;
+        $fqClass = $namespace . '\\' . $class->name;
+
+        if (!is_null($class->getDocComment())) {
+            $docs = $this->parseDocBlock($class->getDocComment(), $namespace, $uses);
+        } else {
+            $docs = null;
+        }
+
+        return [
+            'name' => $name,
+            'type' => 'trait',
+            'class' => $fqClass,
             'docs' => $docs,
             'constants' => $this->parseClassConstants($class, $namespace, $uses),
             'properties' => $this->parseClassProperties($class, $namespace, $uses),
@@ -255,12 +342,12 @@ class ApiParser
     /**
      * Parse the given class constants and return documentation information.
      *
-     * @param \PhpParser\Node\Stmt\Class_ $class
+     * @param \PhpParser\Node\Stmt\ClassLike $class
      * @param string $namespace
      * @param array $uses
      * @return array
      */
-    protected function parseClassConstants(\PhpParser\Node\Stmt\Class_ $class, string $namespace, array $uses = [])
+    protected function parseClassConstants(\PhpParser\Node\Stmt\ClassLike $class, string $namespace, array $uses = [])
     {
         return array_map(function ($constant) use ($namespace, $uses) {
             return [
@@ -275,12 +362,12 @@ class ApiParser
     /**
      * Parse the given class properties and return documentation information.
      *
-     * @param \PhpParser\Node\Stmt\Class_ $class
+     * @param \PhpParser\Node\Stmt\ClassLike $class
      * @param string $namespace
      * @param array $uses
      * @return array
      */
-    protected function parseClassProperties(\PhpParser\Node\Stmt\Class_ $class, string $namespace, array $uses = [])
+    protected function parseClassProperties(\PhpParser\Node\Stmt\ClassLike $class, string $namespace, array $uses = [])
     {
         return array_map(function ($property) use ($namespace, $uses) {
             return [
@@ -298,35 +385,56 @@ class ApiParser
     /**
      * Parse the given class methods and return documentation information.
      *
-     * @param \PhpParser\Node\Stmt\Class_ $class
+     * @param \PhpParser\Node\Stmt\ClassLike $class
      * @param string $namespace
      * @param array $uses
      * @return array
      */
-    protected function parseClassMethods(\PhpParser\Node\Stmt\Class_ $class, string $namespace, array $uses = [])
+    protected function parseClassMethods(\PhpParser\Node\Stmt\ClassLike $class, string $namespace, array $uses = [])
     {
         return array_map(function ($method) use ($namespace, $uses) {
             return [
                 'name' => (string) $method->name,
+                'final' => $method->isFinal(),
                 'static' => $method->isStatic(),
+                'abstract' => $method->isAbstract(),
                 'visibility' => ($method->isPublic())
-                ? 'public'
-                : (($method->isProtected()) ? 'protected' : 'private'),
-                'docs' => $this->parseDocBlock($method->getDocComment(), $namespace, $uses)
+                    ? 'public'
+                    : (($method->isProtected()) ? 'protected' : 'private'),
+                    'docs' => $this->parseDocBlock($method->getDocComment(), $namespace, $uses)
             ];
         }, $class->getMethods());
     }
 
     /**
-     * Parse a docblock comment and extract the documentation.
+     * Parse the given class traits and return documentation information.
      *
-     * @param string $comment
+     * @param \PhpParser\Node\Stmt\ClassLike $class
      * @param string $namespace
      * @param array $uses
      * @return array
      */
-    protected function parseDocBlock(string $comment, string $namespace, array $uses = [])
+    protected function parseClassTraits(\PhpParser\Node\Stmt\ClassLike $class, string $namespace, array $uses = [])
     {
+        return array_map(function ($trait) use ($namespace, $uses) {
+            return $this->resolveName($trait->traits[0], $namespace, $uses);
+        }, $class->getTraitUses());
+    }
+
+    /**
+     * Parse a docblock comment and extract the documentation.
+     *
+     * @param string|null $comment
+     * @param string $namespace
+     * @param array $uses
+     * @return array
+     */
+    protected function parseDocBlock(?string $comment, string $namespace, array $uses = [])
+    {
+        if (is_null($comment)) {
+            return null;
+        }
+
         if (!isset($this->docBlockFactory)) {
             $this->docBlockFactory = DocBlockFactory::createInstance();
         }
@@ -349,13 +457,13 @@ class ApiParser
 
         // Get main info
         $details = [
-            'summary' => $docBlock->getSummary(),
+            'summary' => Markdown::parse($docBlock->getSummary()),
             'body' => Markdown::parse($docBlock->getDescription()->render()),
             'since' => (count($docBlock->getTagsByName('since')))
-                ? $docBlock->getTagsByName('since')[0]->getVersion()
+                ? $docBlock->getTagsByName('since')[0]->getVersion() ?? null
                 : null,
             'deprecated' => (count($docBlock->getTagsByName('deprecated')))
-                ? $docBlock->getTagsByName('deprecated')[0]->getVersion()
+                ? $docBlock->getTagsByName('deprecated')[0]->getVersion() ?? null
                 : null,
         ];
 
@@ -373,6 +481,10 @@ class ApiParser
         // Find vars
         if (count($docBlock->getTagsByName('var'))) {
             $var = $docBlock->getTagsByName('var')[0];
+
+            if (empty($details['summary']) && !empty($var->getDescription())) {
+                $details['summary'] = Markdown::parse($var->getDescription()->render());
+            }
 
             $details['var'] = [
                 'type' => $this->getDocType($var->getType(), $namespace, $uses),
@@ -502,5 +614,18 @@ class ApiParser
         ];
 
         return in_array((string) $name, $scalars);
+    }
+
+    /**
+     * Processes the inherited properties, constants and methods of each class.
+     *
+     * @return void
+     */
+    protected function processInheritance()
+    {
+        foreach ($this->classes as $name => $class)
+        {
+
+        }
     }
 }

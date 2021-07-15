@@ -1,4 +1,4 @@
-<?php namespace Docs\Test\Contracts;
+<?php namespace Docs\Api\Contracts;
 
 interface Db
 {
