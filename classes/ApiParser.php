@@ -7,6 +7,7 @@ use phpDocumentor\Reflection\Type;
 use phpDocumentor\Reflection\Types\Compound;
 use phpDocumentor\Reflection\Types\Object_;
 use PhpParser\Error;
+use PhpParser\Node\FunctionLike;
 use PhpParser\Node\Stmt\Property;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
@@ -352,8 +353,8 @@ class ApiParser
         return array_map(function ($constant) use ($namespace, $uses) {
             return [
                 'name' => (string) $constant->consts[0]->name,
-                'type' => gettype($constant->consts[0]->value->value),
-                'value' => $constant->consts[0]->value->value,
+                'type' => $this->normaliseType(gettype($constant->consts[0]->value->value)),
+                'value' => (string) json_encode($constant->consts[0]->value->value),
                 'docs' => $this->parseDocBlock($constant->getDocComment(), $namespace, $uses)
             ];
         }, $class->getConstants());
@@ -373,7 +374,7 @@ class ApiParser
             return [
                 'name' => (string) $property->props[0]->name,
                 'static' => $property->isStatic(),
-                'type' => $this->getPropertyType($property, $namespace, $uses),
+                'type' => $this->normaliseType($this->getPropertyType($property, $namespace, $uses)),
                 'visibility' => ($property->isPublic())
                     ? 'public'
                     : (($property->isProtected()) ? 'protected' : 'private'),
@@ -393,17 +394,29 @@ class ApiParser
     protected function parseClassMethods(\PhpParser\Node\Stmt\ClassLike $class, string $namespace, array $uses = [])
     {
         return array_map(function ($method) use ($namespace, $uses) {
+            $docs = $this->parseDocBlock($method->getDocComment(), $namespace, $uses);
+
             return [
                 'name' => (string) $method->name,
                 'final' => $method->isFinal(),
                 'static' => $method->isStatic(),
                 'abstract' => $method->isAbstract(),
+                'returns' => $this->getReturnType($method, $namespace, $uses),
                 'visibility' => ($method->isPublic())
                     ? 'public'
                     : (($method->isProtected()) ? 'protected' : 'private'),
-                    'docs' => $this->parseDocBlock($method->getDocComment(), $namespace, $uses)
+                    'docs' => $docs,
+                'params' => $this->processMethodParams($method, $namespace, $uses),
             ];
         }, $class->getMethods());
+    }
+
+    protected function processMethodParams(FunctionLike $method, string $namespace, array $uses = [])
+    {
+        return array_map(function ($param) use ($namespace, $uses) {
+            print_r($param);
+            die();
+        }, $method->getParams());
     }
 
     /**
@@ -519,7 +532,7 @@ class ApiParser
                 if ($item instanceof Object_) {
                     $types[] = $this->resolveName($item->getFqsen()->getName(), $namespace, $uses);
                 } else {
-                    $types[] = $this->resolveName((string) $item, $namespace, $uses);
+                    $types[] = $this->normaliseType($this->resolveName((string) $item, $namespace, $uses));
                 }
             }
 
@@ -529,7 +542,7 @@ class ApiParser
         if ($type instanceof Object_) {
             return $this->resolveName($type->getFqsen()->getName(), $namespace, $uses);
         } else {
-            return $this->resolveName((string) $type, $namespace, $uses);
+            return $this->normaliseType($this->resolveName((string) $type, $namespace, $uses));
         }
     }
 
@@ -570,6 +583,11 @@ class ApiParser
     /**
      * Gets the resolved type for a property.
      *
+     * Types are determined by the first specific type found in order of the below:
+     *   - Strict type declaration
+     *   - Default value
+     *   - Docblock specified type
+     *
      * @param Property $property
      * @param string $namespace
      * @param array $uses
@@ -578,13 +596,48 @@ class ApiParser
     protected function getPropertyType(Property $property, string $namespace, array $uses = [])
     {
         if (!is_null($property->type)) {
-            return $this->resolveName($property->type, $namespace, $uses);
+            return $this->normaliseType($this->resolveName($property->type, $namespace, $uses));
+        }
+
+        if (!is_null($property->props[0]->default)) {
+            if ($property->props[0]->default instanceof \PhpParser\Node\Expr\Array_) {
+                return 'array';
+            }
+
+            return $this->normaliseType(gettype($property->props[0]->default));
         }
 
         $docs = $this->parseDocBlock($property->getDocComment(), $namespace, $uses);
 
         if (!empty($docs['var'])) {
             return $docs['var']['type'];
+        }
+
+        return 'mixed';
+    }
+
+    /**
+     * Gets the return type for a method.
+     *
+     * Types are determined by the first specific type found in order of the below:
+     *   - Return type
+     *   - Docblock specified type
+     *
+     * @param FunctionLike $method
+     * @param string $namespace
+     * @param array $uses
+     * @return array|string
+     */
+    protected function getReturnType(FunctionLike $method, string $namespace, array $uses = [])
+    {
+        if (!is_null($method->returnType)) {
+            return $this->normaliseType($this->resolveName($method->returnType, $namespace, $uses));
+        }
+
+        $docs = $this->parseDocBlock($method->getDocComment(), $namespace, $uses);
+
+        if (!empty($docs['return'])) {
+            return $docs['return']['type'];
         }
 
         return 'mixed';
@@ -617,6 +670,25 @@ class ApiParser
     }
 
     /**
+     * Normalise type names.
+     *
+     * Really, this is just for "int" vs. "integer".
+     *
+     * @param string $type
+     * @return string
+     */
+    protected function normaliseType(string $type)
+    {
+        switch ($type) {
+            case 'int':
+                $type = 'integer';
+                break;
+        }
+
+        return $type;
+    }
+
+    /**
      * Processes the inherited properties, constants and methods of each class.
      *
      * @return void
@@ -630,41 +702,150 @@ class ApiParser
                 continue;
             }
 
+            // Set initial inheritance
+            $class['inherited'] = [
+                'properties' => [],
+                'constants' => [],
+                'methods' => [],
+            ];
+
             if (
                 is_null($class['extends'])
                 && !count($class['traits'])
                 && !count($class['implements'])
             ) {
                 // No inheritance for this class
-                $class['inherited'] = [
-                    'properties' => [],
-                    'constants' => [],
-                    'methods' => [],
-                ];
                 continue;
             }
 
-            // Get extending class methods
             if (!is_null($class['extends']) && isset($this->classes[$class['extends']])) {
                 $this->processSingleInheritance($class, $this->classes[$class['extends']]);
+            }
+
+            if (count($class['traits'])) {
+                foreach ($class['traits'] as $trait) {
+                    if (isset($this->classes[$trait])) {
+                        $this->processSingleInheritance($class, $this->classes[$trait]);
+                    }
+                }
+            }
+
+            if (count($class['implements'])) {
+                foreach ($class['implements'] as $implements) {
+                    if (isset($this->classes[$implements])) {
+                        $this->processSingleInheritance($class, $this->classes[$implements]);
+                    }
+                }
             }
         }
     }
 
-    protected function processSingleInheritance(array &$child, array $parent)
+    protected function processSingleInheritance(array &$child, array $ancestor)
     {
+        // Compare methods, constants and properties of the parent and inherit anything not overwritten by the child
+        // (or already inherited)
+        $childMethods = array_merge(
+            array_map(function ($method) {
+                return $method['name'];
+            }, $child['methods'] ?? []),
+            array_map(function ($method) {
+                return $method['method']['name'];
+            }, $child['inherited']['methods'])
+        );
+        $ancestorMethods = array_map(function ($method) {
+            return $method['name'];
+        }, $ancestor['methods'] ?? []);
+
+        $inheritedMethods = array_diff($ancestorMethods, $childMethods);
+
+        if (count($inheritedMethods)) {
+            foreach ($inheritedMethods as $method) {
+                $child['inherited']['methods'][] = [
+                    'class' => $ancestor['class'],
+                    'method' => array_first($ancestor['methods'], function ($ancestorMethod) use ($method) {
+                        return $ancestorMethod['name'] === $method;
+                    }),
+                ];
+            }
+        }
+
+        $childProps = array_merge(
+            array_map(function ($property) {
+                return $property['name'];
+            }, $child['properties'] ?? []),
+            array_map(function ($property) {
+                return $property['property']['name'];
+            }, $child['inherited']['properties'])
+        );
+        $ancestorProps = array_map(function ($property) {
+            return $property['name'];
+        }, $ancestor['properties'] ?? []);
+
+        $inheritedProps = array_diff($ancestorProps, $childProps);
+
+        if (count($inheritedProps)) {
+            foreach ($inheritedProps as $property) {
+                $child['inherited']['properties'][] = [
+                    'class' => $ancestor['class'],
+                    'property' => array_first($ancestor['properties'], function ($ancestorProp) use ($property) {
+                        return $ancestorProp['name'] === $property;
+                    }),
+                ];
+            }
+        }
+
+        $childConsts = array_merge(
+            array_map(function ($constant) {
+                return $constant['name'];
+            }, $child['constants'] ?? []),
+            array_map(function ($constant) {
+                return $constant['constant']['name'];
+            }, $child['inherited']['constants'])
+        );
+        $ancestorConsts = array_map(function ($constant) {
+            return $constant['name'];
+        }, $ancestor['constants'] ?? []);
+
+        $inheritedConsts = array_diff($ancestorConsts, $childConsts);
+
+        if (count($inheritedConsts)) {
+            foreach ($inheritedConsts as $constant) {
+                $child['inherited']['constants'][] = [
+                    'class' => $ancestor['class'],
+                    'constant' => array_first($ancestor['constants'], function ($ancestorConst) use ($constant) {
+                        return $ancestorConst['name'] === $constant;
+                    }),
+                ];
+            }
+        }
+
         // Find out if the parent also inherits anything
         if (
-            $parent['type'] === 'class'
+            $ancestor['type'] === 'class'
             && (
-                !is_null($parent['extends'])
-                || count($parent['traits'])
-                || count($parent['implements'])
+                !is_null($ancestor['extends'])
+                || count($ancestor['traits'])
+                || count($ancestor['implements'])
             )
         ) {
-            // Get extending class methods
-            if (!is_null($parent['extends']) && isset($this->classes[$parent['extends']])) {
-                $this->processSingleInheritance($child, $this->classes[$parent['extends']]);
+            if (!is_null($ancestor['extends']) && isset($this->classes[$ancestor['extends']])) {
+                $this->processSingleInheritance($child, $this->classes[$ancestor['extends']]);
+            }
+
+            if (count($ancestor['traits'])) {
+                foreach ($ancestor['traits'] as $trait) {
+                    if (isset($this->classes[$trait])) {
+                        $this->processSingleInheritance($child, $this->classes[$trait]);
+                    }
+                }
+            }
+
+            if (count($ancestor['implements'])) {
+                foreach ($ancestor['implements'] as $implements) {
+                    if (isset($this->classes[$implements])) {
+                        $this->processSingleInheritance($child, $this->classes[$implements]);
+                    }
+                }
             }
         }
     }

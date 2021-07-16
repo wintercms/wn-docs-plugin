@@ -20,7 +20,7 @@ class Mysql extends BaseDb implements DbContract
     const MYSQL_SAFE = 1;
 
     /** Run query in a statement */
-    const MYSQL_STMT = 2;
+    const MYSQL_STMT = 'stmt';
 
     /**
      * Query cache.
@@ -40,7 +40,7 @@ class Mysql extends BaseDb implements DbContract
     /**
      * @inheritDoc
      */
-    public function query(string $statement, array $params = [])
+    public function query(string $statement, array $params = []): array
     {
         return [];
     }
@@ -50,7 +50,7 @@ class Mysql extends BaseDb implements DbContract
      *
      * @return void
      */
-    public function close()
+    public function close(): void
     {
 
     }
