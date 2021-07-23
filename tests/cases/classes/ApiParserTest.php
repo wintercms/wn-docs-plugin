@@ -150,13 +150,4 @@ class ApiParserTest extends TestCase
         $this->assertCount(2, $classes['Docs\\Api\\Database\\Mysqli']['inherited']['constants']);
         $this->assertCount(4, $classes['Docs\\Api\\Database\\Mysqli']['inherited']['methods']);
     }
-
-    public function testLibrary()
-    {
-        $apiParser = new ApiParser([
-            '/home/ben/Projects/Personal/wintercms/storm/src'
-        ]);
-        $apiParser->parse();
-        print_r(array_keys($apiParser->getClasses()));
-    }
 }
