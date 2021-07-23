@@ -9,4 +9,8 @@
  */
 class Mysqli extends Mysql
 {
+    /**
+     * @inheritDoc
+     */
+    private $queryCache = [];
 }

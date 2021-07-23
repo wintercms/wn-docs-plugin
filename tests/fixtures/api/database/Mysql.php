@@ -29,6 +29,9 @@ class Mysql extends BaseDb implements DbContract
      */
     private $queryCache = [];
 
+    /** @inheritDoc */
+    protected $queryLog = [];
+
     /**
      * Constructor.
      */
@@ -42,6 +45,16 @@ class Mysql extends BaseDb implements DbContract
      */
     public function query(string $statement, array $params = []): array
     {
+        foreach ($params as $key => $value) {
+            $params[$key] = StringUtility::safe($value);
+        }
+
+        $this->queryCache[] = [
+            'query' => $statement,
+            'params' => $params,
+            'result' => []
+        ];
+
         return [];
     }
 

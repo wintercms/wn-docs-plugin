@@ -11,7 +11,8 @@ interface Db
      *
      * @param string|null $statement Property type conflict
      * @param array $params
-     * @return array An array of results
+     * @return string An array of results
+     * @throws QueryException If the query cannot be run
      */
-    public function query(string $statement, array $params = []);
+    public function query(string $statement, array $params = []): array;
 }
