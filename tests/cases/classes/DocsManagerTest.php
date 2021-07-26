@@ -1,9 +1,10 @@
 <?php namespace Winter\Docs\Tests\Classes;
 
+use PluginTestCase;
+use System\Classes\PluginManager;
 use Winter\Docs\Classes\DocsManager;
-use TestCase;
 
-class DocsManagerTest extends TestCase
+class DocsManagerTest extends PluginTestCase
 {
     protected $docsManager;
 
@@ -11,7 +12,25 @@ class DocsManagerTest extends TestCase
     {
         parent::setUp();
 
+        // Get the plugin manager
+        $pluginManager = PluginManager::instance();
+
+        // Register the plugins to make features like file configuration available
+        $pluginManager->registerAll(true);
+
+        // Boot all the plugins to test with dependencies of this plugin
+        $pluginManager->bootAll(true);
+
+        // Boot this plugin
+        $this->runPluginRefreshCommand('Winter.Docs');
+
         $this->docsManager = DocsManager::instance();
+    }
+
+    public function testRegistration()
+    {
+        // Should be able to see docs registered for this plugin at least.
+        $this->assertTrue($this->docsManager->hasDocumentation('Winter.Docs', 'guide'));
     }
 
     public function testMakeIdentifier()
