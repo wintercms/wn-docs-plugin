@@ -35,4 +35,21 @@ class Plugin extends PluginBase
             ],
         ];
     }
+
+    /**
+     * Registers documentation.
+     *
+     * @return array
+     */
+    public function registerDocumentation()
+    {
+        return [
+            'guide' => [
+                'name' => 'Documentation Guide',
+                'type' => 'developer',
+                'source' => 'local',
+                'path' => '~/winter/docs/docs',
+            ],
+        ];
+    }
 }

@@ -26,7 +26,8 @@
         "php": ">=7.0",
         "composer/installers": "~1.0",
         "nikic/php-parser": "^4.11.0",
-        "phpdocumentor/reflection-docblock": "^5.2.2"
+        "phpdocumentor/reflection-docblock": "^5.2.2",
+        "teamtnt/tntsearch": "^2.8.0"
     },
     "extra": {
         "installer-name": "docs"

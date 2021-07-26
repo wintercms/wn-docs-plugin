@@ -39,23 +39,24 @@ class DocsManager
     protected function registerDocumentation(): void
     {
         // Load documentation from plugins
-        foreach ($this->pluginManager->getPlugins() as $pluginCode => $pluginObj) {
-            if (!method_exists($pluginObj, 'registerDocumentation')) {
+        $documentation = $this->pluginManager->getRegistrationMethodValues('registerDocumentation');
+
+        foreach ($documentation as $pluginCode => $docs) {
+            if (!is_array($docs)) {
+                $errorMessage = sprintf(
+                    'The "registerDocumentation" method in plugin "%s" did not return an array.',
+                    [$pluginCode]
+                );
+
+                if (Config::get('app.debug', false)) {
+                    throw new ApplicationException($errorMessage);
+                }
+
+                Log::error($errorMessage);
                 continue;
             }
 
-            $pluginDocs = $pluginObj->registerDocumentation();
-
-            if (!is_array($pluginDocs)) {
-                throw new ApplicationException(
-                    sprintf(
-                        'The "registerDocumentation" method in plugin "%s" did not return an array.',
-                        [$pluginCode]
-                    )
-                );
-            }
-
-            foreach ($pluginDocs as $code => $doc) {
+            foreach ($docs as $code => $doc) {
                 $this->addDocumentation($pluginCode, $code, $doc);
             }
         }
