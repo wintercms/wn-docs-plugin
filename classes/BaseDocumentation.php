@@ -3,24 +3,69 @@
 use File;
 use Http;
 use Storage;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Winter\Docs\Classes\Contracts\Documentation;
 
 abstract class BaseDocumentation implements Documentation
 {
+    /**
+     * The identifier of this documentation.
+     *
+     * @var string
+     */
     protected $identifier;
 
+    /**
+     * The source disk which will be used for storage.
+     *
+     * @var string
+     */
     protected $source = 'local';
 
+    /**
+     * The path where this documentation is loaded.
+     *
+     * @var string
+     */
     protected $path;
 
+    /**
+     * The subfolder within the ZIP file in which this documentation is stored.
+     *
+     * @var string
+     */
     protected $zipFolder;
 
+    /**
+     * Is this documentation available?
+     *
+     * @var bool|null
+     */
     protected $available = null;
 
+    /**
+     * Is this documentation downloaded?
+     *
+     * @var bool|null
+     */
     protected $downloaded = null;
 
-    protected $storageDisk = null;
+    /**
+     * The storage disk where processed and downloaded documentation is stored.
+     *
+     * @var Filesystem
+     */
+    protected $storageDisk;
 
+    /**
+     * Constructor.
+     *
+     * Expects an identifier for the documentation in the format of Author.Plugin.Doc (eg. Winter.Docs.Docs). The
+     * second parameter is the configuration for this documentation.
+     *
+     * @param string $identifier
+     * @param array $config
+     */
     public function __construct(string $identifier, array $config = [])
     {
         $this->identifier = $identifier;
@@ -29,6 +74,9 @@ abstract class BaseDocumentation implements Documentation
         $this->zipFolder = $config['zipFolder'] ?? '';
     }
 
+    /**
+     * @inheritDoc
+     */
     public function isAvailable(): bool
     {
         if (!is_null($this->available)) {
@@ -48,8 +96,14 @@ abstract class BaseDocumentation implements Documentation
         );
     }
 
+    /**
+     * @inheritDoc
+     */
     abstract public function isProcessed(): bool;
 
+    /**
+     * @inheritDoc
+     */
     public function isDownloaded(): bool
     {
         if (!is_null($this->downloaded)) {
@@ -68,27 +122,54 @@ abstract class BaseDocumentation implements Documentation
         return $this->downloaded = $this->getStorageDisk()->exists($this->getDownloadPath() . '/archive.zip');
     }
 
-    protected function isRemoteAvailable()
+    /**
+     * Checks if a remotely-sourced documentation ZIP file is available.
+     *
+     * @return boolean
+     */
+    protected function isRemoteAvailable(): bool
     {
         return Http::head($this->source)->ok;
     }
 
-    protected function getProcessedPath()
+    /**
+     * Provides the path where processed documentation will be stored.
+     *
+     * @return string
+     */
+    protected function getProcessedPath(): string
     {
         return Config::get('winter.docs::storage.processedPath', 'docs/processed') . '/' . $this->getPathIdentifier();
     }
 
-    protected function getDownloadPath()
+    /**
+     * Provides the path where downloaded remotely-sourced documentation will be stored.
+     *
+     * @return string
+     */
+    protected function getDownloadPath(): string
     {
         return Config::get('winter.docs::storage.downloadPath', 'docs/download') . '/' . $this->getPathIdentifier();
     }
 
-    protected function getPathIdentifier()
+    /**
+     * Provides a path identifier for this particular documentation.
+     *
+     * This is a kebab-case string that will be used as a subfolder for the processed and download paths.
+     *
+     * @return string
+     */
+    protected function getPathIdentifier(): string
     {
         return kebab_case(strtolower(str_replace('.', '-', $this->identifier)));
     }
 
-    protected function getStorageDisk()
+    /**
+     * Gets the storage disk.
+     *
+     * @return Filesystem
+     */
+    protected function getStorageDisk(): Filesystem
     {
         if ($this->storageDisk) {
             return $this->storageDisk;
