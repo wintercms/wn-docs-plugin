@@ -11,7 +11,7 @@ use Yaml;
  *
  * @author Ben Thomson
  */
-class PagesList
+class PageList
 {
     use \Winter\Storm\Support\Traits\Singleton;
 
