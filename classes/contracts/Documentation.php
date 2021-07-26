@@ -1,13 +1,14 @@
 <?php namespace Winter\Docs\Classes\Contracts;
 
-use Winter\Docs\Classes\PageList;
-
 /**
  * Documentation contract
  *
  * A documentation is a singular collection of documentation content. This can be used to document systems, plugins,
  * events and much more. Documentation can be made up of Markdown content, API documentation or event documentation,
  * and can be either sourced locally, or from a remote location as a ZIP archive.
+ *
+ * The Documentation class is a manager for this collection of documentation. It handles the retrieval and processing
+ * of the documentation, and provides a Page List of the contents.
  *
  * @author Ben Thomson <git@alfreido.com>
  * @author Winter CMS
