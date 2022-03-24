@@ -30,6 +30,13 @@ abstract class BaseDocumentation implements Documentation
     protected $path;
 
     /**
+     * The URL where the compiled documentation can be found.
+     *
+     * @var string
+     */
+    protected $url;
+
+    /**
      * The subfolder within the ZIP file in which this documentation is stored.
      *
      * @var string
@@ -71,6 +78,7 @@ abstract class BaseDocumentation implements Documentation
         $this->identifier = $identifier;
         $this->source = $config['source'];
         $this->path = $config['path'];
+        $this->url = $config['url'];
         $this->zipFolder = $config['zipFolder'] ?? '';
     }
 
@@ -119,7 +127,39 @@ abstract class BaseDocumentation implements Documentation
             return true;
         }
 
-        return $this->downloaded = $this->getStorageDisk()->exists($this->getDownloadPath() . '/archive.zip');
+        if ($this->isLocalStorage()) {
+            return $this->downloaded = $this->getStorageDisk()->exists($this->getDownloadPath() . '/archive.zip');
+        }
+
+        return $this->downloaded = File::exists(temp_path($this->getDownloadPath() . '/archive.zip'));
+    }
+
+    /**
+     * Downloads a remote ZIP file for the documentation.
+     *
+     * The downloaded file will be placed at the expected location for processing
+     *
+     * @return void
+     */
+    public function download()
+    {
+        // Create temporary location
+        if (!File::exists(temp_path($this->getDownloadPath()))) {
+            File::makeDirectory(temp_path($this->getDownloadPath()), 0777, true);
+        }
+
+        // Download ZIP file
+        Http::get($this->url, function ($http) {
+            $http->toFile(temp_path($this->getDownloadPath() . '/archive.zip'));
+        });
+
+        // Move the file into location for local storage
+        if ($this->isLocalStorage()) {
+            $this->getStorageDisk()->put(
+                $this->getDownloadPath() . '/archive.zip',
+                temp_path($this->getDownloadPath() . '/archive.zip')
+            );
+        }
     }
 
     /**
@@ -178,5 +218,15 @@ abstract class BaseDocumentation implements Documentation
         return $this->storageDisk = Storage::disk(
             Config::get('winter.docs::storage.disk', 'local')
         );
+    }
+
+    /**
+     * Determines if the storage disk is using the "local" driver.
+     *
+     * @return boolean
+     */
+    protected function isLocalStorage(): bool
+    {
+        return File::isLocalDisk($this->getStorageDisk());
     }
 }
