@@ -23,7 +23,7 @@
         "source": "https://github.com/wintercms/wn-docs-plugin"
     },
     "require": {
-        "php": ">=7.0",
+        "php": ">=7.2.9",
         "composer/installers": "~1.0",
         "nikic/php-parser": "^4.11.0",
         "phpdocumentor/reflection-docblock": "^5.2.2",
