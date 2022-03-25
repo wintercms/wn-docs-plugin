@@ -4,6 +4,10 @@ use PluginTestCase;
 use System\Classes\PluginManager;
 use Winter\Docs\Classes\DocsManager;
 
+/**
+ * @covers \Winter\Docs\Classes\DocsManager
+ * @testdox The Documentation Manager (\Winter\Docs\Classes\DocsManager)
+ */
 class DocsManagerTest extends PluginTestCase
 {
     protected $docsManager;
@@ -27,12 +31,21 @@ class DocsManagerTest extends PluginTestCase
         $this->docsManager = DocsManager::instance();
     }
 
+    /**
+     * @covers \Winter\Docs\Classes\DocsManager::registerDocumentation()
+     * @covers \Winter\Docs\Classes\DocsManager::hasDocumentation()
+     * @testdox can register all docs provided by plugins and determine if a plugin has a given doc.
+     */
     public function testRegistration()
     {
         // Should be able to see docs registered for this plugin at least.
         $this->assertTrue($this->docsManager->hasDocumentation('Winter.Docs', 'guide'));
     }
 
+    /**
+     * @covers \Winter\Docs\Classes\DocsManager::makeIdentifier()
+     * @testdox can make valid identifiers for docs.
+     */
     public function testMakeIdentifier()
     {
         $this->assertEquals(
@@ -56,6 +69,12 @@ class DocsManagerTest extends PluginTestCase
         );
     }
 
+    /**
+     * @covers \Winter\Docs\Classes\DocsManager::addDocumentation()
+     * @covers \Winter\Docs\Classes\DocsManager::removeDocumentation()
+     * @covers \Winter\Docs\Classes\DocsManager::hasDocumentation()
+     * @testdox can manually add and remove documentation.
+     */
     public function testAddDocumentation()
     {
         $this->assertFalse($this->docsManager->hasDocumentation('Docs.Test', 'user'));
