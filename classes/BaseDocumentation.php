@@ -98,11 +98,11 @@ abstract class BaseDocumentation implements Documentation
         }
 
         if ($this->isLocalStorage()) {
-            return $this->available = $this->getStorageDisk()->exists($this->getProcessedPath() . '/index.html');
+            return $this->available = $this->getStorageDisk()->exists($this->getProcessedPath('index.html'));
         }
 
         return $this->available = (
-            $this->getStorageDisk()->exists($this->getProcessedPath() . '/index.html')
+            $this->getStorageDisk()->exists($this->getProcessedPath('index.html'))
             || $this->isRemoteAvailable()
         );
     }
@@ -133,7 +133,7 @@ abstract class BaseDocumentation implements Documentation
             return $this->downloaded = true;
         }
 
-        return $this->downloaded = File::exists($this->getDownloadPath() . '/archive.zip');
+        return $this->downloaded = File::exists($this->getDownloadPath('archive.zip'));
     }
 
     /**
@@ -155,7 +155,7 @@ abstract class BaseDocumentation implements Documentation
 
         // Download ZIP file
         $http = Http::get($this->url, function ($http) {
-            $http->toFile($this->getDownloadPath() . '/archive.zip');
+            $http->toFile($this->getDownloadPath('archive.zip'));
         });
 
         if (!$http->ok) {
@@ -194,25 +194,25 @@ abstract class BaseDocumentation implements Documentation
         }
 
         // Create extracted location
-        if (!File::exists($this->getDownloadPath() . '/extracted')) {
-            File::makeDirectory($this->getDownloadPath() . '/extracted', 0777, true);
+        if (!File::exists($this->getDownloadPath('extracted'))) {
+            File::makeDirectory($this->getDownloadPath('extracted'), 0777, true);
         }
 
         // Extract ZIP to location
         $zip = new Zip();
-        $zip->open($this->getDownloadPath() . '/archive.zip');
-        $zip->extractTo($this->getDownloadPath() . '/extracted');
+        $zip->open($this->getDownloadPath('archive.zip'));
+        $zip->extractTo($this->getDownloadPath('extracted'));
 
         if (!empty($this->zipFolder)) {
             // Remove all files and folders that do not meet the ZIP folder provided
-            $dir = new DirectoryIterator($this->getDownloadPath() . '/extracted');
+            $dir = new DirectoryIterator($this->getDownloadPath('extracted'));
 
             foreach ($dir as $item) {
                 if ($item->isDot()) {
                     continue;
                 }
 
-                $relativePath = str_replace($this->getDownloadPath() . '/extracted/', '', $item->getPathname());
+                $relativePath = str_replace($this->getDownloadPath('extracted/'), '', $item->getPathname());
 
                 if ($relativePath !== $this->zipFolder) {
                     if ($item->isDir()) {
@@ -224,24 +224,24 @@ abstract class BaseDocumentation implements Documentation
             }
 
             // Move remaining files into location
-            $dir = new DirectoryIterator($this->getDownloadPath() . '/extracted/' . $this->zipFolder);
+            $dir = new DirectoryIterator($this->getDownloadPath('extracted/' . $this->zipFolder));
 
             foreach ($dir as $item) {
                 if ($item->isDot()) {
                     continue;
                 }
 
-                $relativePath = str_replace($this->getDownloadPath() . '/extracted/' . $this->zipFolder . '/', '', $item->getPathname());
+                $relativePath = str_replace($this->getDownloadPath('extracted/' . $this->zipFolder . '/'), '', $item->getPathname());
 
-                rename($item->getPathname(), $this->getDownloadPath() . '/extracted/' . $relativePath);
+                rename($item->getPathname(), $this->getDownloadPath('extracted/' . $relativePath));
             }
 
             // Remove ZIP folder
-            File::deleteDirectory($this->getDownloadPath() . '/extracted/' . $this->zipFolder);
+            File::deleteDirectory($this->getDownloadPath('extracted/' . $this->zipFolder));
         }
 
         // Remove ZIP file
-        File::delete($this->getDownloadPath() . '/archive.zip');
+        File::delete($this->getDownloadPath('archive.zip'));
     }
 
     /**
@@ -251,12 +251,12 @@ abstract class BaseDocumentation implements Documentation
      */
     public function cleanupDownload()
     {
-        if (File::exists($this->getDownloadPath() . '/archive.zip')) {
-            File::delete($this->getDownloadPath() . '/archive.zip');
+        if (File::exists($this->getDownloadPath('archive.zip'))) {
+            File::delete($this->getDownloadPath('archive.zip'));
         }
 
-        if (File::exists($this->getDownloadPath() . '/extracted')) {
-            File::deleteDirectory($this->getDownloadPath() . '/extracted');
+        if (File::exists($this->getDownloadPath('extracted'))) {
+            File::deleteDirectory($this->getDownloadPath('extracted'));
         }
     }
 
@@ -278,9 +278,16 @@ abstract class BaseDocumentation implements Documentation
      *
      * This path will be used on the storage disk.
      */
-    public function getProcessedPath(): string
+    public function getProcessedPath(string $suffix = ''): string
     {
-        return Config::get('winter.docs::storage.processedPath', 'docs/processed') . '/' . $this->getPathIdentifier();
+        $path = Config::get('winter.docs::storage.processedPath', 'docs/processed') . '/' . $this->getPathIdentifier();
+
+        // Normalise suffix path
+        if (!empty($suffix)) {
+            $path .= '/' . (ltrim(str_replace(['\\', '/'], '/', $suffix), '/'));
+        }
+
+        return $path;
     }
 
     /**
@@ -289,9 +296,16 @@ abstract class BaseDocumentation implements Documentation
      * This will always be stored in temp storage, as it is expected that a download will be
      * immediately processed afterwards.
      */
-    public function getDownloadPath(): string
+    public function getDownloadPath(string $suffix = ''): string
     {
-        return temp_path(Config::get('winter.docs::storage.downloadPath', 'docs/download') . '/' . $this->getPathIdentifier());
+        $path = temp_path(Config::get('winter.docs::storage.downloadPath', 'docs/download') . '/' . $this->getPathIdentifier());
+
+        // Normalise suffix path
+        if (!empty($suffix)) {
+            $path .= '/' . (ltrim(str_replace(['\\', '/'], '/', $suffix), '/'));
+        }
+
+        return str_replace('/', DIRECTORY_SEPARATOR, $path);
     }
 
     /**

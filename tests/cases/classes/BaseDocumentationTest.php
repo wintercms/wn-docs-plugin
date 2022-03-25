@@ -10,28 +10,6 @@ use TestCase;
  */
 class BaseDocumentationTest extends TestCase
 {
-    protected $tmpPath;
-
-    public function setUp(): void
-    {
-        parent::setUp();
-        $this->tmpPath = dirname(dirname(__DIR__)) . '/tmp';
-
-        if (File::exists($this->tmpPath)) {
-            File::deleteDirectory($this->tmpPath);
-        }
-        File::makeDirectory($this->tmpPath);
-    }
-
-    public function tearDown(): void
-    {
-        if (File::exists($this->tmpPath)) {
-            File::deleteDirectory($this->tmpPath);
-        }
-
-        parent::tearDown();
-    }
-
     /**
      * @covers \Winter\Docs\Classes\BaseDocumentation::download()
      * @covers \Winter\Docs\Classes\BaseDocumentation::isDownloaded()
@@ -48,19 +26,11 @@ class BaseDocumentationTest extends TestCase
                     'url' => 'https://github.com/wintercms/docs/archive/refs/heads/main.zip',
                     'zipFolder' => 'docs-main',
                 ]
-            ],
-            '',
-            true,
-            true,
-            true,
-            ['getDownloadPath']
+            ]
         );
 
-        $doc->method('getDownloadPath')
-            ->will($this->returnValue($this->tmpPath));
-
         $doc->download();
-        $this->assertFileExists($doc->getDownloadPath() . '/archive.zip');
+        $this->assertFileExists($doc->getDownloadPath('archive.zip'));
         $this->assertTrue($doc->isDownloaded());
     }
 
@@ -82,16 +52,8 @@ class BaseDocumentationTest extends TestCase
                     'url' => 'https://wintercms.com/docs/missing/docs.zip',
                     'zipFolder' => 'docs-main',
                 ]
-            ],
-            '',
-            true,
-            true,
-            true,
-            ['getDownloadPath']
+            ]
         );
-
-        $doc->method('getDownloadPath')
-            ->will($this->returnValue($this->tmpPath));
 
         $doc->download();
     }
@@ -111,26 +73,14 @@ class BaseDocumentationTest extends TestCase
                     'url' => 'https://github.com/wintercms/docs/archive/refs/heads/main.zip',
                     'zipFolder' => 'docs-main',
                 ]
-            ],
-            '',
-            true,
-            true,
-            true,
-            ['getDownloadPath']
+            ]
         );
-
-        $doc->method('getDownloadPath')
-            ->will($this->returnValue($this->tmpPath));
-
-        $doc->expects($this->any())
-            ->method('getDownloadPath')
-            ->will($this->returnValue($this->tmpPath));
 
         $doc->download();
         $doc->extract();
 
-        $this->assertDirectoryExists($doc->getDownloadPath() . '/extracted');
-        $this->assertFileExists($doc->getDownloadPath() . '/extracted/snowboard-introduction.md');
+        $this->assertDirectoryExists($doc->getDownloadPath('extracted'));
+        $this->assertFileExists($doc->getDownloadPath('extracted/snowboard-introduction.md'));
     }
 
 /**
@@ -148,20 +98,8 @@ class BaseDocumentationTest extends TestCase
                     'url' => 'https://github.com/wintercms/docs/archive/refs/heads/main.zip',
                     'zipFolder' => 'docs-main',
                 ]
-            ],
-            '',
-            true,
-            true,
-            true,
-            ['getDownloadPath']
+            ]
         );
-
-        $doc->method('getDownloadPath')
-            ->will($this->returnValue($this->tmpPath));
-
-        $doc->expects($this->any())
-            ->method('getDownloadPath')
-            ->will($this->returnValue($this->tmpPath));
 
         $doc->download();
         $doc->extract();
@@ -172,7 +110,7 @@ class BaseDocumentationTest extends TestCase
         // Clean up
         $doc->cleanupDownload();
 
-        $this->assertFileDoesNotExist($doc->getDownloadPath() . '/archive.zip');
-        $this->assertDirectoryDoesNotExist($doc->getDownloadPath() . '/extracted');
+        $this->assertFileDoesNotExist($doc->getDownloadPath('archive.zip'));
+        $this->assertDirectoryDoesNotExist($doc->getDownloadPath('extracted'));
     }
 }
