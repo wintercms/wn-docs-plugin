@@ -200,7 +200,7 @@ abstract class BaseDocumentation implements Documentation
 
         // Extract ZIP to location
         $zip = new Zip();
-        $zip->open($this->getDownloadPath() . '/archive.zip', ZipArchive::RDONLY);
+        $zip->open($this->getDownloadPath() . '/archive.zip');
         $zip->extractTo($this->getDownloadPath() . '/extracted');
 
         if (!empty($this->zipFolder)) {
