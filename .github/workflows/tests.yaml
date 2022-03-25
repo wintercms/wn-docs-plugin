@@ -11,7 +11,7 @@ jobs:
     name: ${{ matrix.operatingSystem }} / PHP ${{ matrix.phpVersion }}
     runs-on: ${{ matrix.operatingSystem }}
     strategy:
-      max-parallel: 4
+      max-parallel: 8
       matrix:
         operatingSystem: [ubuntu-latest, windows-latest]
         phpVersion: ['7.2', '7.3', '7.4', '8.0']
@@ -20,6 +20,11 @@ jobs:
       extensions: curl, fileinfo, gd, mbstring, openssl, pdo, pdo_sqlite, sqlite3, xml, zip
       key: winter-docs-cache-v1
     steps:
+      - name: Cancel previous incomplete runs
+        uses: styfle/cancel-workflow-action@0.8.0
+        with:
+          access_token: ${{ github.token }}
+
       - name: Checkout Winter CMS
         uses: actions/checkout@v2
         with:
@@ -82,5 +87,5 @@ jobs:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         working-directory: plugins/winter/docs
         run: |
-            ../../../vendor/bin/phpunit --coverage-clover coverage.xml
+            ../../../vendor/bin/phpunit --testdox --coverage-clover coverage.xml
             bash <(curl -s https://codecov.io/bash)

@@ -188,6 +188,7 @@ abstract class BaseDocumentation implements Documentation
             throw new ApplicationException(
                 sprintf(
                     'You must download the "%s" documentation first',
+                    $this->identifier
                 )
             );
         }
