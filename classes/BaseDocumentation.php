@@ -2,9 +2,15 @@
 
 use File;
 use Http;
+use Config;
 use Storage;
+use ApplicationException;
+use DirectoryIterator;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Winter\Docs\Classes\Contracts\Documentation;
+use Winter\Docs\Classes\Contracts\PageList;
+use Winter\Storm\Filesystem\Zip;
+use ZipArchive;
 
 abstract class BaseDocumentation implements Documentation
 {
@@ -27,14 +33,14 @@ abstract class BaseDocumentation implements Documentation
      *
      * @var string
      */
-    protected $path;
+    protected $path = null;
 
     /**
      * The URL where the compiled documentation can be found.
      *
      * @var string
      */
-    protected $url;
+    protected $url = null;
 
     /**
      * The subfolder within the ZIP file in which this documentation is stored.
@@ -77,8 +83,8 @@ abstract class BaseDocumentation implements Documentation
     {
         $this->identifier = $identifier;
         $this->source = $config['source'];
-        $this->path = $config['path'];
-        $this->url = $config['url'];
+        $this->path = $config['path'] ?? null;
+        $this->url = $config['url'] ?? null;
         $this->zipFolder = $config['zipFolder'] ?? '';
     }
 
@@ -91,11 +97,8 @@ abstract class BaseDocumentation implements Documentation
             return $this->available;
         }
 
-        if ($this->source === 'local') {
-            return $this->available = (
-                File::exists($this->source . '/index.md')
-                || $this->getStorageDisk()->exists($this->getProcessedPath() . '/index.html')
-            );
+        if ($this->isLocalStorage()) {
+            return $this->available = $this->getStorageDisk()->exists($this->getProcessedPath() . '/index.html');
         }
 
         return $this->available = (
@@ -107,7 +110,10 @@ abstract class BaseDocumentation implements Documentation
     /**
      * @inheritDoc
      */
-    abstract public function isProcessed(): bool;
+    public function isProcessed(): bool
+    {
+        return $this->isDownloaded() && !$this->isAvailable();
+    }
 
     /**
      * @inheritDoc
@@ -122,50 +128,144 @@ abstract class BaseDocumentation implements Documentation
             return $this->downloaded = true;
         }
 
-        // If a remotely-sourced documentation is processed, we'll assume it's downloaded.
-        if ($this->isProcessed()) {
-            return true;
+        // If a remotely-sourced documentation is available, we'll assume it's downloaded.
+        if ($this->isAvailable()) {
+            return $this->downloaded = true;
         }
 
-        if ($this->isLocalStorage()) {
-            return $this->downloaded = $this->getStorageDisk()->exists($this->getDownloadPath() . '/archive.zip');
-        }
-
-        return $this->downloaded = File::exists(temp_path($this->getDownloadPath() . '/archive.zip'));
+        return $this->downloaded = File::exists($this->getDownloadPath() . '/archive.zip');
     }
 
     /**
      * Downloads a remote ZIP file for the documentation.
      *
-     * The downloaded file will be placed at the expected location for processing
-     *
-     * @return void
+     * The downloaded file will be placed at the expected location and extracted for processing
      */
-    public function download()
+    public function download(): void
     {
+        // Local sources do not need to be downloaded
+        if ($this->source === 'local') {
+            return;
+        }
+
         // Create temporary location
-        if (!File::exists(temp_path($this->getDownloadPath()))) {
-            File::makeDirectory(temp_path($this->getDownloadPath()), 0777, true);
+        if (!File::exists($this->getDownloadPath())) {
+            File::makeDirectory($this->getDownloadPath(), 0777, true);
         }
 
         // Download ZIP file
-        Http::get($this->url, function ($http) {
-            $http->toFile(temp_path($this->getDownloadPath() . '/archive.zip'));
+        $http = Http::get($this->url, function ($http) {
+            $http->toFile($this->getDownloadPath() . '/archive.zip');
         });
 
-        // Move the file into location for local storage
-        if ($this->isLocalStorage()) {
-            $this->getStorageDisk()->put(
-                $this->getDownloadPath() . '/archive.zip',
-                temp_path($this->getDownloadPath() . '/archive.zip')
+        if (!$http->ok) {
+            throw new ApplicationException(
+                sprintf(
+                    'Could not retrieve the documentation for "%s" from the remote source "%s"',
+                    $this->identifier,
+                    $this->source
+                )
             );
         }
     }
 
     /**
-     * Checks if a remotely-sourced documentation ZIP file is available.
+     * Extracts the downloaded ZIP file
      *
-     * @return boolean
+     * The ZIP file will be extracted to an "extracted" subfolder within the download path, and the source
+     * made available for processing.
+     *
+     * @throws ApplicationException If the docs ZIP has not been downloaded
+     */
+    public function extract(): void
+    {
+        // Local sources do not need to be downloaded, therefore don't need to be extracted
+        if ($this->source === 'local') {
+            return;
+        }
+
+        if (!$this->isDownloaded()) {
+            throw new ApplicationException(
+                sprintf(
+                    'You must download the "%s" documentation first',
+                )
+            );
+        }
+
+        // Create extracted location
+        if (!File::exists($this->getDownloadPath() . '/extracted')) {
+            File::makeDirectory($this->getDownloadPath() . '/extracted', 0777, true);
+        }
+
+        // Extract ZIP to location
+        $zip = new Zip();
+        $zip->open($this->getDownloadPath() . '/archive.zip', ZipArchive::RDONLY);
+        $zip->extractTo($this->getDownloadPath() . '/extracted');
+
+        if (!empty($this->zipFolder)) {
+            // Remove all files and folders that do not meet the ZIP folder provided
+            $dir = new DirectoryIterator($this->getDownloadPath() . '/extracted');
+
+            foreach ($dir as $item) {
+                if ($item->isDot()) {
+                    continue;
+                }
+
+                $relativePath = str_replace($this->getDownloadPath() . '/extracted/', '', $item->getPathname());
+
+                if ($relativePath !== $this->zipFolder) {
+                    if ($item->isDir()) {
+                        File::deleteDirectory($item->getPathname());
+                    } else {
+                        File::delete($item->getPathname());
+                    }
+                }
+            }
+
+            // Move remaining files into location
+            $dir = new DirectoryIterator($this->getDownloadPath() . '/extracted/' . $this->zipFolder);
+
+            foreach ($dir as $item) {
+                if ($item->isDot()) {
+                    continue;
+                }
+
+                $relativePath = str_replace($this->getDownloadPath() . '/extracted/' . $this->zipFolder . '/', '', $item->getPathname());
+
+                rename($item->getPathname(), $this->getDownloadPath() . '/extracted/' . $relativePath);
+            }
+
+            // Remove ZIP folder
+            File::deleteDirectory($this->getDownloadPath() . '/extracted/' . $this->zipFolder);
+        }
+
+        // Remove ZIP file
+        File::delete($this->getDownloadPath() . '/archive.zip');
+    }
+
+    /**
+     * Deletes any temporary downloads and extracted files.
+     *
+     * @return void
+     */
+    public function cleanupDownload()
+    {
+        if (File::exists($this->getDownloadPath() . '/archive.zip')) {
+            File::delete($this->getDownloadPath() . '/archive.zip');
+        }
+
+        if (File::exists($this->getDownloadPath() . '/extracted')) {
+            File::deleteDirectory($this->getDownloadPath() . '/extracted');
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    abstract public function getPageList(): PageList;
+
+    /**
+     * Checks if a remotely-sourced documentation ZIP file is available.
      */
     protected function isRemoteAvailable(): bool
     {
@@ -175,9 +275,9 @@ abstract class BaseDocumentation implements Documentation
     /**
      * Provides the path where processed documentation will be stored.
      *
-     * @return string
+     * This path will be used on the storage disk.
      */
-    protected function getProcessedPath(): string
+    public function getProcessedPath(): string
     {
         return Config::get('winter.docs::storage.processedPath', 'docs/processed') . '/' . $this->getPathIdentifier();
     }
@@ -185,19 +285,18 @@ abstract class BaseDocumentation implements Documentation
     /**
      * Provides the path where downloaded remotely-sourced documentation will be stored.
      *
-     * @return string
+     * This will always be stored in temp storage, as it is expected that a download will be
+     * immediately processed afterwards.
      */
-    protected function getDownloadPath(): string
+    public function getDownloadPath(): string
     {
-        return Config::get('winter.docs::storage.downloadPath', 'docs/download') . '/' . $this->getPathIdentifier();
+        return temp_path(Config::get('winter.docs::storage.downloadPath', 'docs/download') . '/' . $this->getPathIdentifier());
     }
 
     /**
      * Provides a path identifier for this particular documentation.
      *
      * This is a kebab-case string that will be used as a subfolder for the processed and download paths.
-     *
-     * @return string
      */
     protected function getPathIdentifier(): string
     {
@@ -206,8 +305,6 @@ abstract class BaseDocumentation implements Documentation
 
     /**
      * Gets the storage disk.
-     *
-     * @return Filesystem
      */
     protected function getStorageDisk(): Filesystem
     {
@@ -222,8 +319,6 @@ abstract class BaseDocumentation implements Documentation
 
     /**
      * Determines if the storage disk is using the "local" driver.
-     *
-     * @return boolean
      */
     protected function isLocalStorage(): bool
     {
