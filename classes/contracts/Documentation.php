@@ -20,8 +20,6 @@ interface Documentation
      *
      * For local documentation, or documentation included with the plugin, this will generally be true. For remote
      * documentation, this will only be true if the remote documentation has been downloaded and processed.
-     *
-     * @return bool
      */
     public function isAvailable(): bool;
 
@@ -29,8 +27,6 @@ interface Documentation
      * Determines if the documentation is processed.
      *
      * This determines if the documentation has been processed and converted to HTML for display.
-     *
-     * @return bool
      */
     public function isProcessed(): bool;
 
@@ -39,17 +35,23 @@ interface Documentation
      *
      * For local documentation, this will always be true. For remote documentation, this will only be true if the
      * remote documentation has been downloaded.
-     *
-     * @return bool
      */
     public function isDownloaded(): bool;
 
     /**
+     * Processes documentation into a readable format.
+     *
+     * Processed documentation should generally be stored as rendered HTML pages, with a JSON schema
+     * providing the table of contents.
+     */
+    public function process(): void;
+
+        /**
      * Provides a PageList instance for the documentation.
      *
      * A PageList provides a collated list of pages available for the documentation.
      *
-     * @return PageList
+     * In general, this function should be run after the documentation is processed.
      */
     public function getPageList(): PageList;
 }

@@ -17,17 +17,24 @@ interface PageList
      * This will return an array of Page objects for each list, keyed by the ID/path of the page. If no pages exist,
      * an empty array will be returned.
      *
-     * @return array
+     * @return Page[]
      */
     public function getPages(): array;
 
     /**
+     * Gets the root page which acts as the "home" page for the documentation.
+     *
+     * @return Page
+     */
+    public function getRootPage(): Page;
+
+    /**
      * Gets a navigation list for the purpose of displaying a table of contents.
      *
-     * Each array item will contain a `title` and (optionally) a `path`. If the item is a section, it will just contain
-     * a `title`. Child items will be contained in the `children` key.
-     *
-     * @return array
+     * Navigation lists can be unlimited levels deep. Each item should have a title, and contain
+     * a `title` attribute, and either a `path` (for a page), or `children` (for a section with
+     * sub-navigation items). An item may also contain an `instance` if it is a page, which should
+     * be linked to a Page instance.
      */
     public function getNavigation(): array;
 
@@ -36,9 +43,6 @@ interface PageList
      *
      * If the path exists within the page list, it will return a Page object for that path. Otherwise, it will return
      * `null`.
-     *
-     * @param string $path
-     * @return Page|null
      */
     public function getPage(string $path): ?Page;
 
@@ -47,9 +51,6 @@ interface PageList
      *
      * This is a helper method for navigation. When provided a page, it will get either the previous page of the current
      * section, or the last page of the previous section. If there's no previous page, this will return `null`.
-     *
-     * @param Page $page
-     * @return Page|null
      */
     public function previousPage(Page $page): ?Page;
 
@@ -58,9 +59,6 @@ interface PageList
      *
      * This is a helper method for navigation. When provided a page, it will get either the next page of the current
      * section, or the first page of the next section. If there's no next page, this will return `null`.
-     *
-     * @param Page $page
-     * @return Page|null
      */
     public function nextPage(Page $page): ?Page;
 
@@ -69,9 +67,6 @@ interface PageList
      *
      * Executes a search query within the current Page List and returns any pages that match the query in an array. If
      * no results are found, an empty array will be returned.
-     *
-     * @param string $query
-     * @return array
      */
     public function search(string $query): array;
 }

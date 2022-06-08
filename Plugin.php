@@ -52,4 +52,27 @@ class Plugin extends PluginBase
             ],
         ];
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function boot()
+    {
+        if ($this->app->runningInConsole()) {
+            $this->registerCommands();
+        }
+    }
+
+    /**
+     * Register commands.
+     *
+     * @return void
+     */
+    protected function registerCommands()
+    {
+        $this->commands([
+            \Winter\Docs\Console\DocsList::class,
+            \Winter\Docs\Console\DocsProcess::class,
+        ]);
+    }
 }

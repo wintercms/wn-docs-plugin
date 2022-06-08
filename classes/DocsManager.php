@@ -1,9 +1,10 @@
 <?php namespace Winter\Docs\Classes;
 
-use ApplicationException;
-use Config;
 use Log;
+use Lang;
+use Config;
 use Validator;
+use ApplicationException;
 use System\Classes\PluginManager;
 
 class DocsManager
@@ -16,7 +17,7 @@ class DocsManager
     /** @var array Registered documentation */
     protected $registered = [];
 
-    /** @var System\Classes\PluginManager Plugin manager instance */
+    /** @var \System\Classes\PluginManager Plugin manager instance */
     protected $pluginManager;
 
     /**
@@ -63,6 +64,60 @@ class DocsManager
     }
 
     /**
+     * Lists all available documentation.
+     *
+     * This will return an array of documentation details, with the following keys for each
+     * documentation:
+     *   - `id`: The identifier of the documentation
+     *   - `name`: The name of the documentation
+     *   - `type`: The type of documentation (one of `user`, `developer`, `api` or `events`)
+     *   - `plugin`: The plugin providing the documentation
+     *
+     * @return array
+     */
+    public function listDocumentation(): array
+    {
+        $docs = [];
+
+        foreach ($this->registered as $id => $doc) {
+            $docs[] = [
+                'id' => $id,
+                'instance' => $this->getDocumentation($id),
+                'name' => $doc['name'],
+                'type' => $doc['type'],
+                'plugin' => Lang::get($this->pluginManager
+                    ->findByIdentifier($doc['plugin'])
+                    ->pluginDetails()['name']),
+            ];
+        }
+
+        return $docs;
+    }
+
+    /**
+     * Gets a documentation instance by ID.
+     *
+     * @param string $id
+     * @return BaseDocumentation|null
+     */
+    public function getDocumentation(string $id): ?BaseDocumentation
+    {
+        if (!array_key_exists($id, $this->registered)) {
+            return null;
+        }
+
+        $doc = $this->registered[$id];
+
+        switch ($doc['type']) {
+            case 'user':
+            case 'developer':
+                return new MarkdownDocumentation($id, $doc);
+        }
+
+        return null;
+    }
+
+    /**
      * Adds a documentation instance.
      *
      * @param string $owner
@@ -77,7 +132,8 @@ class DocsManager
             'name' => 'required',
             'type' => 'required|in:user,developer,api,events',
             'source' => 'required|in:local,remote',
-            'path' => 'required',
+            'path' => 'required_if:source,local',
+            'url' => 'required_if:source,remote',
         ], [
             'name' => 'winter.docs::lang.validation.docs.name',
             'type' => 'winter.docs::lang.validation.docs.type',
@@ -102,6 +158,7 @@ class DocsManager
         }
 
         $this->registered[$this->makeIdentifier($owner, $code)] = $config;
+        $this->registered[$this->makeIdentifier($owner, $code)]['plugin'] = $owner;
 
         return true;
     }
