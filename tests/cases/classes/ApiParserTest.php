@@ -3,6 +3,10 @@
 use TestCase;
 use Winter\Docs\Classes\ApiParser;
 
+/**
+ * @covers \Winter\Docs\Classes\ApiParser
+ * @testdox The API Parser class (\Winter\Docs\Classes\ApiParser)
+ */
 class ApiParserTest extends TestCase
 {
     protected $apiParser;
@@ -17,6 +21,10 @@ class ApiParserTest extends TestCase
         ]);
     }
 
+    /**
+     * @covers \Winter\Docs\Classes\ApiParser::getPaths()
+     * @testdox can get the paths of all PHP files in a given codebase.
+     */
     public function testGetPaths()
     {
         $this->assertCount(7, $this->apiParser->getPaths());
@@ -36,6 +44,10 @@ class ApiParserTest extends TestCase
         ], $filenames);
     }
 
+    /**
+     * @covers \Winter\Docs\Classes\ApiParser::parse()
+     * @testdox can parse all PHP files and present the schema in an array.
+     */
     public function testParse()
     {
         $this->apiParser->parse();

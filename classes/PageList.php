@@ -13,8 +13,6 @@ use Yaml;
  */
 class PageList
 {
-    use \Winter\Storm\Support\Traits\Singleton;
-
     /**
      * @var array Available pages, grouped by section and category.
      */

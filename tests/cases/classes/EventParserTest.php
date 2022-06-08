@@ -13,6 +13,8 @@ class EventParserTest extends TestCase
 
     public function testGetEventDescription()
     {
+        $this->markTestIncomplete('Windows support has not been added to Event Parser');
+
         $expect =<<<EOS
 Determines file changes between the specified build and the previous build.
 
@@ -26,6 +28,8 @@ EOS;
 
     public function testGetEventTag()
     {
+        $this->markTestIncomplete('Windows support has not been added to Event Parser');
+
         $this->assertEquals(
             'my.test.event',
             EventParser::getEventTag($this->eventDocBlock)
@@ -34,6 +38,8 @@ EOS;
 
     public function testGetSinceTag()
     {
+        $this->markTestIncomplete('Windows support has not been added to Event Parser');
+
         $this->assertEquals(
             'v1.1.2',
             EventParser::getSinceTag($this->eventDocBlock)
@@ -42,6 +48,8 @@ EOS;
 
     public function testGetParamTag()
     {
+        $this->markTestIncomplete('Windows support has not been added to Event Parser');
+
         $params = EventParser::getParamTag($this->eventDocBlock);
 
         $this->assertEquals(
