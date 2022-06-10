@@ -38,11 +38,6 @@ class MarkdownPageList implements PageListContract
     protected ?string $menuFile = null;
 
     /**
-     * Paths to ignore when collating available pages and assets.
-     */
-    protected array $ignoredPaths = [];
-
-    /**
      * Generates the page list from a menu file.
      *
      * @param string $menuFile The absolute path to the menu file.

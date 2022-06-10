@@ -72,6 +72,11 @@ abstract class BaseDocumentation implements Documentation
     protected $storageDisk;
 
     /**
+     * Paths to ignore when collating available pages and assets.
+     */
+    protected array $ignoredPaths = [];
+
+    /**
      * Constructor.
      *
      * Expects an identifier for the documentation in the format of Author.Plugin.Doc (eg. Winter.Docs.Docs). The
@@ -87,6 +92,7 @@ abstract class BaseDocumentation implements Documentation
         $this->path = $config['path'] ?? null;
         $this->url = $config['url'] ?? null;
         $this->zipFolder = $config['zipFolder'] ?? '';
+        $this->ignoredPaths = $config['ignorePaths'] ?? [];
     }
 
     /**
@@ -309,7 +315,7 @@ abstract class BaseDocumentation implements Documentation
     /**
      * Get all unprocessed files that meet the given extension(s).
      */
-    public function getProcessFiles(string|array $extension, array $ignoredPaths = []): array
+    public function getProcessFiles(string|array $extension = []): array
     {
         $extensions = (is_string($extension))
             ? [$extension]
@@ -321,10 +327,10 @@ abstract class BaseDocumentation implements Documentation
         $found = [];
 
         foreach ($files as $file) {
-            if (File::isFile($file) && in_array(File::extension($file), $extensions)) {
+            if (File::isFile($file) && (!count($extensions) || in_array(File::extension($file), $extensions))) {
                 $relative = ltrim(str_replace($this->getProcessPath(), '', $file), '/');
 
-                foreach ($ignoredPaths as $path) {
+                foreach ($this->ignoredPaths as $path) {
                     if ($relative === $path || str_starts_with($relative, $path)) {
                         continue 2;
                     }

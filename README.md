@@ -66,10 +66,10 @@ Parameter | Required | Description
 `zipFolder` | No | If `source` is remote, this will allow you to limit the source to a folder within the ZIP file, if the ZIP includes other files.
 `tocPath` | No | Determines the path, relative to the source, where the table of contents YAML file can be found. By default, the Docs plugin will look for a `toc.yaml` in the root folder of the documentation source.
 `image` | No | Provides an image representation of the documentation.
+`ignorePaths` | An array of paths to ignore when finding available documentation. Each path may be specified as a glob.
 
 For API documentation (ie. the `type` parameter is `api`), there are a couple of extra parameters that may be specified:
 
 Parameter | Description
 --------- | -----------
-`sourcePaths` | An array of paths to limit the API parser to. Each path may be specified as a glob. If no source paths are provided, all PHP files are parsed.
-`ignorePaths` | An array of paths to ignore, if you wish to do the reverse of the above. Each path may be specified as a glob.
+`sourcePaths` | An array of paths to limit the API parser to. Each path may be specified as a glob. If no source paths are provided, all PHP files are parsed. Note that the `ignorePaths` patterns are still applied.
