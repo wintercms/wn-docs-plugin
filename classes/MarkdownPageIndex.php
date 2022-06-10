@@ -14,13 +14,6 @@ class MarkdownPageIndex extends Model
         '@Winter.Search.Behaviors.Searchable'
     ];
 
-    /**
-     * The Markdown Documentation page list.
-     *
-     * @var MarkdownPageList
-     */
-    public MarkdownPageList $pageList;
-
     public $fillable = [
         'slug',
         'path',
@@ -35,17 +28,40 @@ class MarkdownPageIndex extends Model
         'content' => 'text',
     ];
 
+    public $searchable = [
+        'slug',
+        'path',
+        'title',
+        'content',
+    ];
+
+    public function __construct(array $attributes = [])
+    {
+        print_r(array_keys($attributes));
+        $this->pageList = $attributes['pageList'];
+        unset($attributes['pageList']);
+
+        parent::__construct($attributes);
+    }
+
     public function index()
     {
         foreach ($this->pageList->getPages() as $page) {
             $page->load();
 
-            static::create([
+            $index = new static([
+                'pageList' => $this->pageList,
                 'slug' => Str::slug($page->getPath()),
                 'path' => $page->getPath(),
                 'title' => $page->getTitle(),
                 'content' => $page->getContent(),
             ]);
+            $index->save();
         }
+    }
+
+    public function searchableAs()
+    {
+        return Str::slug($this->pageList->getDocsIdentifier());
     }
 }

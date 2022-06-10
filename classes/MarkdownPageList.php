@@ -121,8 +121,17 @@ class MarkdownPageList implements PageList
      */
     public function index(): void
     {
-        $index = new MarkdownPageIndex();
-        $index->pageList = $this;
+        $index = new MarkdownPageIndex([
+            'pageList' => $this,
+        ]);
         $index->index();
+    }
+
+    /**
+     * Gets the identifier for the doc instance.
+     */
+    public function getDocsIdentifier(): string
+    {
+        return $this->docs->identifier;
     }
 }
