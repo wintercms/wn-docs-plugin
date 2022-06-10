@@ -1,9 +1,6 @@
 <?php namespace Winter\Docs;
 
 use Backend;
-use Event;
-use Lang;
-use System\Classes\CombineAssets;
 use System\Classes\PluginBase;
 
 class Plugin extends PluginBase
