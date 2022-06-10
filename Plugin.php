@@ -34,19 +34,12 @@ class Plugin extends PluginBase
     }
 
     /**
-     * Registers documentation.
-     *
-     * @return array
+     * @inheritDoc
      */
-    public function registerDocumentation()
+    public function registerComponents()
     {
         return [
-            'guide' => [
-                'name' => 'Documentation Guide',
-                'type' => 'developer',
-                'source' => 'local',
-                'path' => '~/winter/docs/docs',
-            ],
+            \Winter\Docs\Components\DocsPage::class => 'docsPage',
         ];
     }
 
