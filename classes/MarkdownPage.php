@@ -70,7 +70,7 @@ class MarkdownPage implements Page
         if (extension_loaded('xml')) {
             libxml_use_internal_errors(true);
 
-            $dom = new \DOMDocument('1.0', 'utf-8');
+            $dom = new \DOMDocument('1.0', 'UTF-8');
             $dom->loadHTML($content);
             $body = $dom->getElementsByTagName('body');
 
@@ -84,14 +84,14 @@ class MarkdownPage implements Page
             // the first element and it will have a class "table-of-contents".
             $firstChild = $body->firstChild->nodeName;
             if ($firstChild === 'ul') {
-                $class = $body->firstChild->attributes->getNamedItem('class');
+                $class = $body->firstChild->attributes->getNamedItem('class')->value;
                 if (!is_null($class) && $class === 'table-of-contents') {
                     $this->navigation = $this->processNav($body->firstChild);
                 }
                 $body->removeChild($body->firstChild);
             }
 
-            $this->content = $dom->saveHTML($body);
+            $this->content = utf8_decode($dom->saveHTML($body));
         } else {
             $this->navigation = [];
             $this->content = $content;
@@ -110,7 +110,7 @@ class MarkdownPage implements Page
         if ($navElement->childNodes->count() > 0) {
             foreach ($navElement->childNodes as $node) {
                 if ($node->nodeName === 'li') {
-                    $linkNode = $node->childNodes->getElementsByTagName('a')->item(0);
+                    $linkNode = $node->getElementsByTagName('a')->item(0);
 
                     // There must be a link node
                     if (is_null($linkNode)) {
@@ -118,11 +118,11 @@ class MarkdownPage implements Page
                     }
 
                     // There MAY be a subnav (<ul>) node
-                    $subNavNode = $node->childNodes->getElementsByTagName('ul')->item(0);
+                    $subNavNode = $node->getElementsByTagName('ul')->item(0);
 
                     $navItem = [
                         'title' => $linkNode->textContent,
-                        'anchor' => $linkNode->attributes->getNamedItem('href'),
+                        'anchor' => $linkNode->attributes->getNamedItem('href')->value,
                     ];
 
                     if (!is_null($subNavNode)) {
@@ -162,7 +162,7 @@ class MarkdownPage implements Page
             return $this->load();
         }
 
-        return [];
+        return $this->navigation;
     }
 
     /**
