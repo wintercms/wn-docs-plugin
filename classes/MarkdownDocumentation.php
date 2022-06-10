@@ -1,7 +1,22 @@
 <?php namespace Winter\Docs\Classes;
 
 use File;
-use Markdown;
+use League\CommonMark\Environment\Environment;
+use League\CommonMark\Extension\Autolink\AutolinkExtension;
+use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\CommonMark\Node\Block\Heading;
+use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
+use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
+use League\CommonMark\Extension\DefaultAttributes\DefaultAttributesExtension;
+use League\CommonMark\Extension\DisallowedRawHtml\DisallowedRawHtmlExtension;
+use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
+use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
+use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
+use League\CommonMark\Extension\Table\TableExtension;
+use League\CommonMark\Extension\TableOfContents\TableOfContentsExtension;
+use League\CommonMark\Node\Query;
+use League\CommonMark\Parser\MarkdownParser;
+use League\CommonMark\Renderer\HtmlRenderer;
 use Winter\Docs\Classes\Contracts\PageList as PageListContact;
 use Winter\Storm\Exception\ApplicationException;
 
@@ -25,6 +40,11 @@ class MarkdownDocumentation extends BaseDocumentation
      * The page list instance.
      */
     protected ?PageListContact $pageList = null;
+
+    /**
+     * The CommonMark environment for manipulating and rendering Markdown docs.
+     */
+    protected ?Environment $environment = null;
 
     /**
      * Constructor.
@@ -74,12 +94,8 @@ class MarkdownDocumentation extends BaseDocumentation
             );
         }
 
-        // Convert YAML file to a PageList instance.
-        $this->pageList = new MarkdownPageList();
-        $this->pageList->fromMenuFile($this->tocPath);
-        $ignoredPaths = $this->pageList->getIgnoredPaths();
-
-        $markdownFiles = $this->getProcessFiles('md', $ignoredPaths);
+        // Find Markdown files
+        $markdownFiles = $this->getProcessFiles('md');
 
         foreach ($markdownFiles as $file) {
             $this->processMarkdownFile($file);
@@ -90,14 +106,45 @@ class MarkdownDocumentation extends BaseDocumentation
      * Processes a single Markdown file, converting the Markdown to HTML and storing it in the processed
      * folder.
      */
-    public function processMarkdownFile(string $path): string
+    public function processMarkdownFile(string $path)
     {
         $file = $this->getProcessPath($path);
         $directory = (str_contains($path, '/')) ? str_replace(File::basename($path), '', $path) : '';
         $fileName = File::name($file);
         $contents = File::get($file);
 
-        $rendered = Markdown::parse($contents);
+        // Create a CommonMark environment and parse the Markdown document for an AST.
+        if (is_null($this->environment)) {
+            $this->environment = $this->createMarkdownEnvironment();
+        }
+        $markdown = new MarkdownParser($this->environment);
+        $markdownAst = $markdown->parse($contents);
+
+        // Find all links and images, and correct the URLs
+        $matching = (new Query)
+            ->where(Query::type(Link::class))
+            ->orWhere(Query::type(Image::class))
+            ->findAll($markdownAst);
+
+        foreach ($matching as $node) {
+            if ($node instanceof Link) {
+                $url = $node->getUrl();
+
+                // Skip hashbang or external links
+                if (starts_with($url, ['#', 'http://', 'https://'])) {
+                    continue;
+                }
+
+                // Remove .md extension from internal links
+                if (preg_match('/\.md($|[#?])/', $url)) {
+                    $node->setUrl(preg_replace('/(\.md)($|[#?])/', '$2', $url));
+                }
+            }
+        }
+
+        // Render the document
+        $renderer = new HtmlRenderer($this->environment);
+        $rendered = $renderer->renderDocument($markdownAst);
 
         $this->getStorageDisk()->put(
             $this->getProcessedPath($directory . $fileName . '.htm'),
@@ -134,5 +181,59 @@ class MarkdownDocumentation extends BaseDocumentation
         }
 
         return null;
+    }
+
+    /**
+     * Creates a custom CommonMark environment for use with the docs.
+     *
+     * @return Environment
+     */
+    protected function createMarkdownEnvironment()
+    {
+        $config = [
+            'default_attributes' => [
+                Heading::class => [
+                    'class' => static function (Heading $node) {
+                        if ($node->getLevel() === 1) {
+                            return 'main-title';
+                        } else {
+                            return null;
+                        }
+                    }
+                ],
+            ],
+            'heading_permalink' => [
+                'id_prefix' => 'content',
+                'fragment_prefix' => '',
+                'min_heading_level' => 2,
+                'max_heading_level' => 3,
+            ],
+            'table_of_contents' => [
+                'min_heading_level' => 2,
+                'max_heading_level' => 3,
+            ],
+            'table' => [
+                'wrap' => [
+                    'enabled' => true,
+                    'tag' => 'div',
+                    'attributes' => [
+                        'class' => 'table-container',
+                    ],
+                ],
+            ],
+        ];
+
+        $environment = new Environment($config);
+        $environment->addExtension(new CommonMarkCoreExtension());
+        $environment->addExtension(new AutolinkExtension());
+        $environment->addExtension(new DefaultAttributesExtension());
+        $environment->addExtension(new DisallowedRawHtmlExtension());
+        $environment->addExtension(new ExternalLinkExtension());
+        $environment->addExtension(new HeadingPermalinkExtension());
+        $environment->addExtension(new StrikethroughExtension());
+        $environment->addExtension(new TableExtension());
+        $environment->addExtension(new TableOfContentsExtension());
+
+        return $environment;
     }
 }
