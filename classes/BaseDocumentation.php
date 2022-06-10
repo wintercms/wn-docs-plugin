@@ -112,7 +112,7 @@ abstract class BaseDocumentation implements Documentation
             return $this->available;
         }
 
-        return $this->available = $this->getStorageDisk()->exists($this->getProcessedPath('processed'));
+        return $this->available = $this->getStorageDisk()->exists($this->getProcessedPath('page-map'));
     }
 
     /**

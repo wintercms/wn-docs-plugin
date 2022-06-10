@@ -14,11 +14,13 @@ use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
 use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
 use League\CommonMark\Extension\Table\TableExtension;
 use League\CommonMark\Extension\TableOfContents\TableOfContentsExtension;
+use League\CommonMark\Node\Inline\Text;
 use League\CommonMark\Node\Query;
 use League\CommonMark\Parser\MarkdownParser;
 use League\CommonMark\Renderer\HtmlRenderer;
 use Winter\Docs\Classes\Contracts\PageList as PageListContact;
 use Winter\Storm\Exception\ApplicationException;
+use Winter\Storm\Support\Str;
 
 /**
  * Markdown Documentation instance.
@@ -95,23 +97,37 @@ class MarkdownDocumentation extends BaseDocumentation
         }
 
         // Find Markdown files
+        $pageMap = [];
         $markdownFiles = $this->getProcessFiles('md');
 
         foreach ($markdownFiles as $file) {
-            $this->processMarkdownFile($file);
+            $page = $this->processMarkdownFile($file);
+            $pageMap[$page['slug']] = $page;
         }
+
+        // Create page map
+        $this->getStorageDisk()->put(
+            $this->getProcessedPath('page-map'),
+            json_encode($pageMap),
+        );
     }
 
     /**
      * Processes a single Markdown file, converting the Markdown to HTML and storing it in the processed
      * folder.
+     *
+     * @return array An array that represents the meta of this file. It should contain the following:
+     *  - `slug`: The path to the file, without any extensions - will be used as the slug
+     *  - `path`: The path to the file, with the final extension (.htm)
+     *  - `title`: The title of the page
      */
-    public function processMarkdownFile(string $path)
+    public function processMarkdownFile(string $path): array
     {
         $file = $this->getProcessPath($path);
         $directory = (str_contains($path, '/')) ? str_replace(File::basename($path), '', $path) : '';
         $fileName = File::name($file);
         $contents = File::get($file);
+        $title = null;
 
         // Create a CommonMark environment and parse the Markdown document for an AST.
         if (is_null($this->environment)) {
@@ -119,6 +135,28 @@ class MarkdownDocumentation extends BaseDocumentation
         }
         $markdown = new MarkdownParser($this->environment);
         $markdownAst = $markdown->parse($contents);
+
+        // Find a title, if available
+        $matching = (new Query)
+            ->where(Query::type(Heading::class))
+            ->findAll($markdownAst);
+
+        foreach ($matching as $node) {
+            if ($node->getLevel() === 1) {
+                $children = $node->children();
+
+                foreach ($children as $child) {
+                    if ($child instanceof Text) {
+                        $title = $child->getLiteral();
+                    }
+                }
+            }
+        }
+
+        // If no title was found, try to convert the filename into a title
+        if (is_null($title)) {
+            $title = Str::title($fileName);
+        }
 
         // Find all links and images, and correct the URLs
         $matching = (new Query)
@@ -150,6 +188,12 @@ class MarkdownDocumentation extends BaseDocumentation
             $this->getProcessedPath($directory . $fileName . '.htm'),
             $rendered
         );
+
+        return [
+            'slug' => $directory . $fileName,
+            'path' => $directory . $fileName . '.htm',
+            'title' => $title,
+        ];
     }
 
     /**
