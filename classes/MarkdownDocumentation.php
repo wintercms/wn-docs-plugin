@@ -1,6 +1,9 @@
-<?php namespace Winter\Docs\Classes;
+<?php
+
+namespace Winter\Docs\Classes;
 
 use File;
+use Yaml;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
@@ -34,7 +37,7 @@ use Winter\Storm\Support\Str;
 class MarkdownDocumentation extends BaseDocumentation
 {
     /**
-     * The relative path to the table of contents.
+     * The relative path to the table of contents in the source.
      */
     protected ?string $tocPath = null;
 
@@ -67,7 +70,24 @@ class MarkdownDocumentation extends BaseDocumentation
      */
     public function getPageList(): PageListContact
     {
-        return $this->pageList;
+        if (!$this->isProcessed()) {
+            throw new ApplicationException(
+                sprintf(
+                    'The "%s" documentation must be processed before a page list can be retrieved.',
+                    $this->identifier
+                ),
+            );
+        }
+
+        if (!is_null($this->pageList)) {
+            return $this->pageList;
+        }
+
+        return $this->pageList = new MarkdownPageList(
+            $this,
+            $this->getStorageDisk()->get($this->getProcessedPath('page-map.json')),
+            $this->getStorageDisk()->get($this->getProcessedPath('toc.json'))
+        );
     }
 
     /**
@@ -80,35 +100,38 @@ class MarkdownDocumentation extends BaseDocumentation
      */
     public function process(): void
     {
-        if (is_null($this->tocPath)) {
-            $this->tocPath = $this->guessTocPath();
-
-            if (is_null($this->tocPath)) {
-                throw new ApplicationException('You must provide a table of contents.');
-            }
-        }
-        if (!File::exists($this->tocPath)) {
-            throw new ApplicationException(
-                sprintf(
-                    'The table of contents cannot be found at "%s".',
-                    $this->tocPath
-                )
-            );
-        }
-
         // Find Markdown files
         $pageMap = [];
         $markdownFiles = $this->getProcessFiles('md');
 
         foreach ($markdownFiles as $file) {
             $page = $this->processMarkdownFile($file);
-            $pageMap[$page['slug']] = $page;
+            $pageMap[$page['path']] = $page;
         }
+
+        // Order page map by path
+        ksort($pageMap, SORT_NATURAL);
 
         // Create page map
         $this->getStorageDisk()->put(
-            $this->getProcessedPath('page-map'),
+            $this->getProcessedPath('page-map.json'),
             json_encode($pageMap),
+        );
+
+        // Generate table of contents
+        $tocPath = ($this->tocPath && File::exists($this->getProcessPath($this->tocPath)))
+            ? $this->getProcessPath($this->tocPath)
+            : $this->guessTocPath();
+
+        if (is_null($tocPath)) {
+            // Create a TOC from the page list
+            $toc = $this->autoGenerateToc($pageMap);
+        } else {
+            $toc = $this->processTocFile($tocPath, $pageMap);
+        }
+        $this->getStorageDisk()->put(
+            $this->getProcessedPath('toc.json'),
+            json_encode($toc),
         );
     }
 
@@ -117,8 +140,8 @@ class MarkdownDocumentation extends BaseDocumentation
      * folder.
      *
      * @return array An array that represents the meta of this file. It should contain the following:
-     *  - `slug`: The path to the file, without any extensions - will be used as the slug
-     *  - `path`: The path to the file, with the final extension (.htm)
+     *  - `path`: The path to the file, without any extensions - will be used as the slug
+     *  - `fileName`: The path to the file, with the final extension (.htm)
      *  - `title`: The title of the page
      */
     public function processMarkdownFile(string $path): array
@@ -190,8 +213,8 @@ class MarkdownDocumentation extends BaseDocumentation
         );
 
         return [
-            'slug' => $directory . $fileName,
-            'path' => $directory . $fileName . '.htm',
+            'path' => $directory . $fileName,
+            'fileName' => $directory . $fileName . '.htm',
             'title' => $title,
         ];
     }
@@ -279,5 +302,92 @@ class MarkdownDocumentation extends BaseDocumentation
         $environment->addExtension(new TableOfContentsExtension());
 
         return $environment;
+    }
+
+    /**
+     * Processes a table of contents file from the source and creates a formatted navigation.
+     */
+    protected function processTocFile(string $path, array $pageMap): array
+    {
+        $contents = Yaml::parse(File::get($path));
+
+        return [
+            'root' => $contents['rootPage'] ?? $this->guessRootPage($pageMap),
+            'navigation' => (isset($contents['sections']))
+                ? $this->processTocSections($contents['sections'])
+                : $this->processTocPages($contents['pages'] ?? [])
+        ];
+    }
+
+    /**
+     * Guesses the root page of the documentation.
+     *
+     * This is a fallback if no root page is specified. It will look for the first file it finds
+     * out of the following:
+     *  - `index`
+     *  - `home`
+     *  - `main`
+     *  - `docs`
+     *
+     * If it finds one, that path will be returned, otherwise `null` will be returned.
+     */
+    protected function guessRootPage(array $pageMap): ?string
+    {
+        $paths = array_keys($pageMap);
+        $found = null;
+
+        foreach (['index', 'home', 'main', 'docs'] as $root) {
+            if (in_array($root, $paths)) {
+                $found = $root;
+                break;
+            }
+        }
+
+        return $found;
+    }
+
+    /**
+     * Processes a sections definition in the table of contents file.
+     */
+    protected function processTocSections(array $sections): array
+    {
+        $navigation = [];
+
+        foreach ($sections as $title => $section) {
+            $sectionNav = [
+                'title' => $title,
+                'children' => [],
+            ];
+
+            if (isset($section['pages'])) {
+                foreach ($section['pages'] as $path => $pageTitle) {
+                    $sectionNav['children'][] = [
+                        'title' => $pageTitle,
+                        'path' => $path,
+                    ];
+                }
+            }
+
+            $navigation[] = $sectionNav;
+        }
+
+        return $navigation;
+    }
+
+    /**
+     * Processes a pages definition in the table of contents file.
+     */
+    protected function processTocPages(array $pages): array
+    {
+        $navigation = [];
+
+        foreach ($pages as $path => $pageTitle) {
+            $navigation[] = [
+                'title' => $pageTitle,
+                'path' => $path,
+            ];
+        }
+
+        return $navigation;
     }
 }

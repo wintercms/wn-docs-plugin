@@ -2,9 +2,8 @@
 
 use File;
 use Yaml;
-use Winter\Docs\Classes\Contracts\PageList as PageListContract;
+use Winter\Docs\Classes\Contracts\PageList;
 use Winter\Storm\Exception\ApplicationException;
-use Illuminate\Contracts\Filesystem\Filesystem;
 use Winter\Docs\Classes\Contracts\Page;
 
 /**
@@ -14,57 +13,44 @@ use Winter\Docs\Classes\Contracts\Page;
  *
  * @author Ben Thomson
  */
-class MarkdownPageList implements PageListContract
+class MarkdownPageList implements PageList
 {
+    /**
+     * The Markdown Documentation instance.
+     */
+    protected MarkdownDocumentation $docs;
+
+    /**
+     * The root page of the documentation.
+     */
+    protected Page $rootPage;
+
     /**
      * @var array<string, Page> Available pages, keyed by path.
      */
     protected array $pages = [];
 
     /**
-     * @var array<string, array<string, string>> The sections within the navigation. Each section will be an array of
-     *  page paths that fall within the section as the key, and the title of the page as the value.
+     * The navigation of the documentation.
      */
-    protected array $sections = [];
+    protected array $navigation = [];
 
     /**
-     * The menu structure.
+     * Generates the page list from a page map and the table of contents files.
      */
-    protected array $menu = [];
-
-    /**
-     * The file containing the docs menu.
-     */
-    protected ?string $menuFile = null;
-
-    /**
-     * Generates the page list from a menu file.
-     *
-     * @param string $menuFile The absolute path to the menu file.
-     * @return void
-     */
-    public function fromMenuFile(string $menuFile)
+    public function __construct(MarkdownDocumentation $docs, string $pageMap, string $toc)
     {
-        $this->menuFile = $menuFile;
-
-        if (!File::exists($this->menuFile)) {
-            throw new ApplicationException(
-                sprintf(
-                    'Menu file cannot be found at "%s".',
-                    $this->menuFile
-                )
-            );
+        foreach (json_decode($pageMap, true) as $path => $page) {
+            $this->pages[$path] = new MarkdownPage($docs, $path, $page['title']);
         }
 
-        $this->loadMenuFile($this->menuFile);
-    }
+        $tocData = json_decode($toc, true);
+        if (!array_key_exists($tocData['root'], $this->pages)) {
+            throw new ApplicationException('The root page specified for the documentation does not exist');
+        }
 
-    /**
-     * Gets the ignored paths from the menu configuration.
-     */
-    public function getIgnoredPaths()
-    {
-        return $this->ignoredPaths;
+        $this->rootPage = $this->pages[$tocData['root']];
+        $this->navigation = $tocData['navigation'];
     }
 
     /**
@@ -80,7 +66,14 @@ class MarkdownPageList implements PageListContract
      */
     public function getPage(string $path): ?Page
     {
-        return null;
+        if (!array_key_exists($path, $this->pages)) {
+            return null;
+        }
+
+        $page = $this->pages[$path];
+        $page->load();
+
+        return $page;
     }
 
     /**
@@ -96,7 +89,7 @@ class MarkdownPageList implements PageListContract
      */
     public function getRootPage(): Page
     {
-
+        return $this->rootPage;
     }
 
     /**
@@ -120,33 +113,16 @@ class MarkdownPageList implements PageListContract
      */
     public function getNavigation(): array
     {
-        return [];
+        return $this->navigation;
     }
 
     /**
-     * Loads the pages from a YAML table of contents file.
-     *
-     * @param string $section
-     * @param string $file
-     * @return void
+     * @inheritDoc
      */
-    protected function loadMenuFile($file)
+    public function index(): void
     {
-        $config = Yaml::parseFile($file);
-        $rootPage = $config['rootPage'] ?? null;
-        $this->ignoredPaths = $config['ignoredPaths'] ?? [];
-        $pages = [];
-
-        if (isset($config['sections'])) {
-            foreach ($config['sections'] as $sectionName => $sectionConfig) {
-                if (empty($sectionConfig['pages'])) {
-                    continue;
-                }
-
-                $this->sections[$sectionName] = $sectionConfig['pages'];
-            }
-        }
-
-        $this->pages[] = $pages;
+        $index = new MarkdownPageIndex();
+        $index->pageList = $this;
+        $index->index();
     }
 }

@@ -112,7 +112,10 @@ abstract class BaseDocumentation implements Documentation
             return $this->available;
         }
 
-        return $this->available = $this->getStorageDisk()->exists($this->getProcessedPath('page-map'));
+        return $this->available = (
+            $this->getStorageDisk()->exists($this->getProcessedPath('page-map.json'))
+            && $this->getStorageDisk()->exists($this->getProcessedPath('toc.json'))
+        );
     }
 
     /**
@@ -132,7 +135,7 @@ abstract class BaseDocumentation implements Documentation
             return $this->downloaded;
         }
 
-        if ($this->source === 'local') {
+        if (!$this->isRemote()) {
             return $this->downloaded = true;
         }
 
@@ -152,8 +155,18 @@ abstract class BaseDocumentation implements Documentation
     public function download(): void
     {
         // Local sources do not need to be downloaded
-        if ($this->source === 'local') {
+        if (!$this->isRemote()) {
             return;
+        }
+
+        if (!$this->isRemoteAvailable()) {
+            throw new ApplicationException(
+                sprintf(
+                    'Could not retrieve the documentation for "%s" from the remote source "%s"',
+                    $this->identifier,
+                    $this->source
+                )
+            );
         }
 
         // Create temporary location
@@ -188,7 +201,7 @@ abstract class BaseDocumentation implements Documentation
     public function extract(): void
     {
         // Local sources do not need to be downloaded, therefore don't need to be extracted
-        if ($this->source === 'local') {
+        if (!$this->isRemote()) {
             return;
         }
 
@@ -283,7 +296,7 @@ abstract class BaseDocumentation implements Documentation
      */
     protected function isRemoteAvailable(): bool
     {
-        return Http::head($this->source)->ok;
+        return Http::head($this->url)->ok;
     }
 
     /**
@@ -358,6 +371,18 @@ abstract class BaseDocumentation implements Documentation
         }
 
         return $path;
+    }
+
+    /**
+     * Gets the contents of a file in the processed storage.
+     *
+     * Returns `null` if the file cannot be found or read.
+     */
+    public function getProcessedFile(string $path): ?string
+    {
+        return $this->getStorageDisk()->get(
+            $this->getProcessedPath($path)
+        ) ?? null;
     }
 
     /**

@@ -69,4 +69,9 @@ interface PageList
      * no results are found, an empty array will be returned.
      */
     public function search(string $query): array;
+
+    /**
+     * Creates a search index for the available pages in the documentation.
+     */
+    public function index(): void;
 }
