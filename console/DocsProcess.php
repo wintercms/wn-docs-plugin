@@ -62,10 +62,6 @@ class DocsProcess extends Command
         $this->line(' - Processing documentation');
         $doc->process();
 
-        // Index documentation
-        $this->line(' - Indexing documentation');
-        $doc->getPageList()->index();
-
         $this->line(' - Clean up downloaded files');
         $doc->cleanupDownload();
     }
