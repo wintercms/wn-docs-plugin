@@ -26,6 +26,11 @@ class MarkdownPageList implements PageList
     protected Page $rootPage;
 
     /**
+     * The active page of the documentation.
+     */
+    protected ?Page $activePage = null;
+
+    /**
      * @var array<string, Page> Available pages, keyed by path.
      */
     protected array $pages = [];
@@ -74,6 +79,46 @@ class MarkdownPageList implements PageList
         $page->load();
 
         return $page;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setActivePage(Page $page): void
+    {
+        $this->activePage = $page;
+
+        // Find the page within the navigation and add an "active" state to the page, and a
+        // "childActive" state to the section.
+        foreach ($this->navigation as $key => $nav) {
+            if (isset($nav['path'])) {
+                if (isset($this->pages[$nav['path']]) && $this->pages[$nav['path']] === $this->activePage) {
+                    $this->navigation[$key]['active'] = true;
+                } else {
+                    unset($this->navigation[$key]['active']);
+                }
+            }
+            if (isset($nav['children'])) {
+                $childActive = false;
+
+                foreach ($nav['children'] as $subKey => $subNav) {
+                    if (isset($subNav['path'])) {
+                        if (isset($this->pages[$subNav['path']]) && $this->pages[$subNav['path']] === $this->activePage) {
+                            $this->navigation[$key]['children'][$subKey]['active'] = true;
+                            $childActive = true;
+                        } else {
+                            unset($this->navigation[$key]['children'][$subKey]['active']);
+                        }
+                    }
+                }
+
+                if ($childActive) {
+                    $this->navigation[$key]['childActive'] = true;
+                } else {
+                    unset($this->navigation[$key]['childActive']);
+                }
+            }
+        }
     }
 
     /**

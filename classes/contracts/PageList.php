@@ -33,8 +33,8 @@ interface PageList
      *
      * Navigation lists can be unlimited levels deep. Each item should have a title, and contain
      * a `title` attribute, and either a `path` (for a page), or `children` (for a section with
-     * sub-navigation items). An item may also contain an `instance` if it is a page, which should
-     * be linked to a Page instance.
+     * sub-navigation items). If a page is active, it will contain an `active` key set to true. For
+     * sections with an active page within, they will contain a `childActive` key set to true.
      */
     public function getNavigation(): array;
 
@@ -45,6 +45,13 @@ interface PageList
      * `null`.
      */
     public function getPage(string $path): ?Page;
+
+    /**
+     * Sets the active page within the documentation.
+     *
+     * This allows the navigation to determine which page is active.
+     */
+    public function setActivePage(Page $page): void;
 
     /**
      * Gets the previous page.

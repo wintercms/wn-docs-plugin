@@ -66,6 +66,7 @@ class DocsPage extends ComponentBase
             }
             $page->load();
         }
+        $pageList->setActivePage($page);
 
         $this->page['title'] = $page->getTitle();
         $this->page['content'] = $page->getContent();
