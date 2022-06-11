@@ -4,10 +4,12 @@ namespace Winter\Docs\Classes;
 
 use File;
 use Yaml;
+use Config;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\CommonMark\Node\Block\Heading;
+use League\CommonMark\Extension\CommonMark\Node\Inline\Code;
 use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
 use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
 use League\CommonMark\Extension\DefaultAttributes\DefaultAttributesExtension;
@@ -268,6 +270,19 @@ class MarkdownDocumentation extends BaseDocumentation
                         }
                     }
                 ],
+                Link::class => [
+                    'class' => static function (Link $node) {
+                        if ($node->firstChild() instanceof Code) {
+                            return 'code-link';
+                        }
+                        return null;
+                    },
+                ],
+            ],
+            'external_link' => [
+                'internal_hosts' => Config::get('app.trustedHosts', false) ?: [],
+                'open_in_new_window' => true,
+                'html_class' => 'external-link',
             ],
             'heading_permalink' => [
                 'id_prefix' => 'content',
