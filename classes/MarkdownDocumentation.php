@@ -289,6 +289,7 @@ class MarkdownDocumentation extends BaseDocumentation
                 'fragment_prefix' => '',
                 'min_heading_level' => 2,
                 'max_heading_level' => 3,
+                'symbol' => '#'
             ],
             'table_of_contents' => [
                 'min_heading_level' => 2,
