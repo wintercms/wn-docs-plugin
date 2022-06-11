@@ -1,5 +1,7 @@
 <?php namespace Winter\Docs\Components;
 
+use Flash;
+use Request;
 use Cms\Classes\ComponentBase;
 use Winter\Docs\Classes\DocsManager;
 
@@ -72,6 +74,50 @@ class DocsPage extends ComponentBase
         $this->page['content'] = $page->getContent();
         $this->page['mainNav'] = $pageList->getNavigation();
         $this->page['pageNav'] = $page->getNavigation();
+    }
+
+    public function onLoadPage()
+    {
+        $docId = $this->property('docId');
+        $path = Request::post('page');
+
+        // Load documentation
+        $docsManager = DocsManager::instance();
+        $docs = $docsManager->getDocumentation($docId);
+
+        if (!$docs->isAvailable()) {
+            Flash::error('Documentation does not exist');
+            return;
+        }
+
+        $pageList = $docs->getPageList();
+
+        if (empty($path)) {
+            $page = $pageList->getRootPage();
+            $page->load();
+        } else {
+            $page = $pageList->getPage($path);
+            if (is_null($page)) {
+                Flash::error('The page you have requested does not exist');
+                return;
+            }
+            $page->load();
+        }
+        $pageList->setActivePage($page);
+
+        return [
+            'title' => $page->getTitle(),
+            'path' => $path,
+            '#docs-menu' => $this->renderPartial('@menu', [
+                'mainNav' => $pageList->getNavigation(),
+            ]),
+            '#docs-content' => $this->renderPartial('@contents', [
+                'content' => $page->getContent(),
+            ]),
+            '#docs-toc' => $this->renderPartial('@toc', [
+                'pageNav' => $page->getNavigation(),
+            ]),
+        ];
     }
 
     /**
