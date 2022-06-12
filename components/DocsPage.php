@@ -74,6 +74,7 @@ class DocsPage extends ComponentBase
         $this->page['docTitle'] = $docs->getName();
         $this->page['docType'] = $docs->getType();
         $this->page['title'] = $page->getTitle();
+        $this->page['pagePath'] = $page->getPath();
         $this->page['content'] = $page->getContent();
         $this->page['mainNav'] = $pageList->getNavigation();
         $this->page['pageNav'] = $page->getNavigation();
@@ -113,7 +114,7 @@ class DocsPage extends ComponentBase
             'docName' => $docs->getName(),
             'docType' => $docs->getType(),
             'title' => $page->getTitle(),
-            'path' => $path,
+            'pagePath' => $page->getPath(),
             '#docs-menu' => $this->renderPartial('@menu', [
                 'mainNav' => $pageList->getNavigation(),
             ]),

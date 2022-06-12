@@ -11,6 +11,11 @@
 interface Page
 {
     /**
+     * Gets the page path, relative to the documentation.
+     */
+    public function getPath(): string;
+
+    /**
      * Gets the title of the page.
      */
     public function getTitle(): string;
