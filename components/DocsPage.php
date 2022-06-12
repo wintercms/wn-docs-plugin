@@ -117,12 +117,27 @@ class DocsPage extends ComponentBase
             'pagePath' => $page->getPath(),
             '#docs-menu' => $this->renderPartial('@menu', [
                 'mainNav' => $pageList->getNavigation(),
+                'docId' => $docs->getIdentifier(),
+                'docName' => $docs->getName(),
+                'docType' => $docs->getType(),
+                'title' => $page->getTitle(),
+                'pagePath' => $page->getPath(),
             ]),
             '#docs-content' => $this->renderPartial('@contents', [
                 'content' => $page->getContent(),
+                'docId' => $docs->getIdentifier(),
+                'docName' => $docs->getName(),
+                'docType' => $docs->getType(),
+                'title' => $page->getTitle(),
+                'pagePath' => $page->getPath(),
             ]),
             '#docs-toc' => $this->renderPartial('@toc', [
                 'pageNav' => $page->getNavigation(),
+                'docId' => $docs->getIdentifier(),
+                'docName' => $docs->getName(),
+                'docType' => $docs->getType(),
+                'title' => $page->getTitle(),
+                'pagePath' => $page->getPath(),
             ]),
         ];
     }
