@@ -2,6 +2,7 @@
 
 use File;
 use Http;
+use Lang;
 use Config;
 use Storage;
 use DirectoryIterator;
@@ -17,59 +18,53 @@ abstract class BaseDocumentation implements Documentation
 {
     /**
      * The identifier of this documentation.
-     *
-     * @var string
      */
-    protected $identifier;
+    protected string $identifier;
+
+    /**
+     * The name of this documentation.
+     */
+    protected string $name;
+
+    /**
+     * The type of this documentation.
+     */
+    protected string $type;
 
     /**
      * The source disk which will be used for storage.
-     *
-     * @var string
      */
-    protected $source = 'local';
+    protected string $source = 'local';
 
     /**
      * The path where this documentation is loaded.
-     *
-     * @var string
      */
-    protected $path = null;
+    protected ?string $path = null;
 
     /**
      * The URL where the compiled documentation can be found.
-     *
-     * @var string
      */
-    protected $url = null;
+    protected ?string $url = null;
 
     /**
      * The subfolder within the ZIP file in which this documentation is stored.
-     *
-     * @var string
      */
-    protected $zipFolder;
+    protected ?string $zipFolder = null;
 
     /**
      * Is this documentation available?
-     *
-     * @var bool|null
      */
-    protected $available = null;
+    protected ?bool $available = null;
 
     /**
      * Is this documentation downloaded?
-     *
-     * @var bool|null
      */
-    protected $downloaded = null;
+    protected ?bool $downloaded = null;
 
     /**
      * The storage disk where processed and downloaded documentation is stored.
-     *
-     * @var Filesystem
      */
-    protected $storageDisk;
+    protected Filesystem $storageDisk;
 
     /**
      * Paths to ignore when collating available pages and assets.
@@ -88,11 +83,43 @@ abstract class BaseDocumentation implements Documentation
     public function __construct(string $identifier, array $config = [])
     {
         $this->identifier = $identifier;
+        $this->name = $config['name'];
+        $this->type = $config['type'];
         $this->source = $config['source'];
         $this->path = $config['path'] ?? null;
         $this->url = $config['url'] ?? null;
         $this->zipFolder = $config['zipFolder'] ?? '';
         $this->ignoredPaths = $config['ignorePaths'] ?? [];
+    }
+
+    /**
+     * Gets the identifier of the documentation.
+     */
+    public function getIdentifier(): string
+    {
+        return $this->identifier;
+    }
+
+    /**
+     * Gets the name of this documentation.
+     */
+    public function getName(): string
+    {
+        return Lang::get($this->name);
+    }
+
+    /**
+     * Gets the type of this documentation.
+     *
+     * The type will be one of the following:
+     *  - `user`: Documentation intended for end-users or site administrators.
+     *  - `developer`: Documentation intended for developers.
+     *  - `api`: API documentation generated from PHP source code.
+     *  - `events`: Event documentation generated from PHP source code.
+     */
+    public function getType(): string
+    {
+        return $this->type;
     }
 
     /**

@@ -70,6 +70,9 @@ class DocsPage extends ComponentBase
         }
         $pageList->setActivePage($page);
 
+        $this->page['docId'] = $docs->getIdentifier();
+        $this->page['docTitle'] = $docs->getName();
+        $this->page['docType'] = $docs->getType();
         $this->page['title'] = $page->getTitle();
         $this->page['content'] = $page->getContent();
         $this->page['mainNav'] = $pageList->getNavigation();
@@ -106,6 +109,9 @@ class DocsPage extends ComponentBase
         $pageList->setActivePage($page);
 
         return [
+            'docId' => $docs->getIdentifier(),
+            'docName' => $docs->getName(),
+            'docType' => $docs->getType(),
             'title' => $page->getTitle(),
             'path' => $path,
             '#docs-menu' => $this->renderPartial('@menu', [
