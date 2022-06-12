@@ -64,7 +64,7 @@ abstract class BaseDocumentation implements Documentation
     /**
      * The storage disk where processed and downloaded documentation is stored.
      */
-    protected Filesystem $storageDisk;
+    protected ?Filesystem $storageDisk = null;
 
     /**
      * Paths to ignore when collating available pages and assets.
