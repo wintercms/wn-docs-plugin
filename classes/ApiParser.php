@@ -1,16 +1,21 @@
 <?php namespace Winter\Docs\Classes;
 
 use Markdown;
+use phpDocumentor\Reflection\DocBlock\Tags\Author;
 use phpDocumentor\Reflection\DocBlock\Tags\Generic;
+use phpDocumentor\Reflection\DocBlock\Tags\InvalidTag;
 use phpDocumentor\Reflection\DocBlockFactory;
 use phpDocumentor\Reflection\Type;
 use phpDocumentor\Reflection\Types\Compound;
 use phpDocumentor\Reflection\Types\Object_;
+use PhpParser\ConstExprEvaluationException;
+use PhpParser\ConstExprEvaluator;
 use PhpParser\Error;
 use PhpParser\Node\FunctionLike;
 use PhpParser\Node\NullableType;
 use PhpParser\Node\Param;
 use PhpParser\Node\Stmt\Property;
+use PhpParser\Node\UnionType;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
 use Winter\Storm\Filesystem\Filesystem;
@@ -353,10 +358,25 @@ class ApiParser
     protected function parseClassConstants(\PhpParser\Node\Stmt\ClassLike $class, string $namespace, array $uses = [])
     {
         return array_map(function (\PhpParser\Node\Stmt\ClassConst $constant) use ($namespace, $uses) {
+            $evaluator = new ConstExprEvaluator();
+            $value = $constant->consts[0]->value;
+
+            try {
+                $value = $evaluator->evaluateSilently($value);
+            } catch (ConstExprEvaluationException $e) {
+                return [
+                    'name' => (string) $constant->consts[0]->name,
+                    'type' => 'mixed',
+                    'value' => 'unknown',
+                    'docs' => $this->parseDocBlock($constant->getDocComment(), $namespace, $uses),
+                    'line' => $constant->getStartLine(),
+                ];
+            }
+
             return [
                 'name' => (string) $constant->consts[0]->name,
-                'type' => $this->normaliseType(gettype($constant->consts[0]->value->value)),
-                'value' => (string) json_encode($constant->consts[0]->value->value),
+                'type' => $this->normaliseType(gettype($value)),
+                'value' => (string) json_encode($value),
                 'docs' => $this->parseDocBlock($constant->getDocComment(), $namespace, $uses),
                 'line' => $constant->getStartLine(),
             ];
@@ -503,6 +523,10 @@ class ApiParser
         if (count($docBlock->getTagsByName('author'))) {
             /** @var \phpDocumentor\Reflection\DocBlock\Tags\Author */
             foreach ($docBlock->getTagsByName('author') as $tag) {
+                if (!$tag instanceof Author) {
+                    continue;
+                }
+
                 $details['authors'][] = [
                     'name' => $tag->getAuthorName(),
                     'email' => $tag->getEmail(),
@@ -514,23 +538,37 @@ class ApiParser
         if (count($docBlock->getTagsByName('var'))) {
             $var = $docBlock->getTagsByName('var')[0];
 
-            if (empty($details['summary']) && !empty($var->getDescription())) {
-                $details['summary'] = Markdown::parse($var->getDescription()->render());
-            }
+            if ($var instanceof InvalidTag) {
+                $details['summary'] = (string) $var;
+                $details['var'] = [
+                    'type' => 'mixed',
+                ];
+            } else {
+                if (empty($details['summary']) && !empty($var->getDescription())) {
+                    $details['summary'] = Markdown::parse($var->getDescription()->render());
+                }
 
-            $details['var'] = [
-                'type' => $this->getDocType($var->getType(), $namespace, $uses),
-            ];
+                $details['var'] = [
+                    'type' => $this->getDocType($var->getType(), $namespace, $uses),
+                ];
+            }
         }
 
         // Find params
         if (count($docBlock->getTagsByName('param'))) {
             /** @var \phpDocumentor\Reflection\DocBlock\Tags\Param */
-            foreach ($docBlock->getTagsByName('param') as $tag) {
-                $details['params'][$tag->getVariableName()] = [
-                    'type' => $this->getDocType($tag->getType(), $namespace, $uses),
-                    'summary' => Markdown::parse($tag->getDescription()->render()),
-                ];
+            foreach ($docBlock->getTagsByName('param') as $key => $tag) {
+                if ($tag instanceof InvalidTag) {
+                    $details['params'][(string) $key] = [
+                        'type' => 'mixed',
+                        'summary' => (string) $tag,
+                    ];
+                } else {
+                    $details['params'][$tag->getVariableName()] = [
+                        'type' => $this->getDocType($tag->getType(), $namespace, $uses),
+                        'summary' => Markdown::parse($tag->getDescription()->render()),
+                    ];
+                }
             }
         }
 
@@ -550,10 +588,17 @@ class ApiParser
         if (count($docBlock->getTagsByName('return'))) {
             $return = $docBlock->getTagsByName('return')[0];
 
-            $details['return'] = [
-                'type' => $this->getDocType($return->getType(), $namespace, $uses),
-                'summary' => Markdown::parse($return->getDescription()->render()),
-            ];
+            if ($return instanceof InvalidTag) {
+                $details['return'] = [
+                    'type' => 'mixed',
+                    'summary' => (string) $return,
+                ];
+            } else {
+                $details['return'] = [
+                    'type' => $this->getDocType($return->getType(), $namespace, $uses),
+                    'summary' => Markdown::parse($return->getDescription()->render()),
+                ];
+            }
         }
 
         return array_filter($details, function ($item, $key) {
@@ -652,6 +697,25 @@ class ApiParser
     protected function getPropertyType(Property $property, string $namespace, array $uses = [])
     {
         if (!is_null($property->type)) {
+            if ($property->type instanceof NullableType) {
+                return [
+                    $this->normaliseType($this->resolveName($property->type->type, $namespace, $uses)),
+                    'null',
+                ];
+            } elseif ($property->type instanceof UnionType) {
+                $types = [];
+
+                foreach ($property->type->types as $item) {
+                    if ($item instanceof Object_ && !is_null($item->getFqsen())) {
+                        $types[] = $this->resolveName($item->getFqsen()->getName(), $namespace, $uses);
+                    } else {
+                        $types[] = $this->normaliseType($this->resolveName((string) $item, $namespace, $uses));
+                    }
+                }
+
+                return $types;
+            }
+
             return $this->normaliseType($this->resolveName($property->type, $namespace, $uses));
         }
 
@@ -696,7 +760,26 @@ class ApiParser
         $summary = null;
 
         if (!is_null($param->type)) {
-            $type = $this->normaliseType($this->resolveName($param->type, $namespace, $uses));
+            if ($param->type instanceof NullableType) {
+                $type = [
+                    $this->normaliseType($this->resolveName($param->type->type, $namespace, $uses)),
+                    'null',
+                ];
+            } elseif ($param->type instanceof UnionType) {
+                $types = [];
+
+                foreach ($param->type->types as $item) {
+                    if ($item instanceof Object_ && !is_null($item->getFqsen())) {
+                        $types[] = $this->resolveName($item->getFqsen()->getName(), $namespace, $uses);
+                    } else {
+                        $types[] = $this->normaliseType($this->resolveName((string) $item, $namespace, $uses));
+                    }
+                }
+
+                $type = $types;
+            } else {
+                $type = $this->normaliseType($this->resolveName($param->type, $namespace, $uses));
+            }
         }
 
         if (!is_null($param->default)) {
@@ -709,7 +792,7 @@ class ApiParser
 
         if (!empty($docs) && !empty($docs['params'][(string) $param->var->name])) {
             $type = ($type === 'mixed') ? $docs['params'][(string) $param->var->name]['type'] : $type;
-            $summary = $docs['params'][(string) $param->var->name]['summary'];
+            $summary = $docs['params'][(string) $param->var->name]['summary'] ?? null;
         }
 
         return [
@@ -741,6 +824,18 @@ class ApiParser
                     $this->normaliseType($this->resolveName($method->returnType->type, $namespace, $uses)),
                     'null',
                 ];
+            } elseif ($method->returnType instanceof UnionType) {
+                $types = [];
+
+                foreach ($method->returnType->types as $item) {
+                    if ($item instanceof Object_ && !is_null($item->getFqsen())) {
+                        $types[] = $this->resolveName($item->getFqsen()->getName(), $namespace, $uses);
+                    } else {
+                        $types[] = $this->normaliseType($this->resolveName((string) $item, $namespace, $uses));
+                    }
+                }
+
+                $type = $types;
             } else {
                 $type = $this->normaliseType($this->resolveName($method->returnType, $namespace, $uses));
             }
@@ -1110,7 +1205,7 @@ class ApiParser
         // Inherited method docs will overwrite the returns and params if any of them are missing a summary or are
         // using the "mixed" type.
         if ($type === 'method') {
-            if ($data['returns']['type'] === 'mixed' && $data['docs']['returns']['type'] !== 'mixed') {
+            if ($data['returns']['type'] === 'mixed' && ($data['docs']['returns']['type'] ?? 'mixed') !== 'mixed') {
                 $data['returns']['type'] = $data['docs']['returns']['type'];
             }
             if (empty($data['returns']['summary']) && !empty($data['docs']['return']['summary'])) {
@@ -1118,7 +1213,7 @@ class ApiParser
             }
 
             foreach ($data['params'] as &$param) {
-                if ($param['type'] === 'mixed' && $data['docs']['params'][$param['name']]['type'] !== 'mixed') {
+                if ($param['type'] === 'mixed' && ($data['docs']['params'][$param['name']]['type'] ?? 'mixed') !== 'mixed') {
                     $param['type'] = $data['docs']['params'][$param['name']]['type'];
                 }
                 if (empty($param['summary']) && !empty($data['docs']['params'][$param['name']]['summary'])) {

@@ -112,6 +112,8 @@ class DocsManager
             case 'user':
             case 'developer':
                 return new MarkdownDocumentation($id, $doc);
+            case 'api':
+                return new PHPApiDocumentation($id, $doc);
         }
 
         return null;
