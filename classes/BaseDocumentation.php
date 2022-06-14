@@ -244,49 +244,52 @@ abstract class BaseDocumentation implements Documentation
         // Create extracted location
         if (!File::exists($this->getDownloadPath('extracted'))) {
             File::makeDirectory($this->getDownloadPath('extracted'), 0777, true);
+        } else {
+            File::deleteDirectory($this->getDownloadPath('extracted'));
+        }
+
+        // Create collated location
+        if (!File::exists($this->getDownloadPath('collated'))) {
+            File::makeDirectory($this->getDownloadPath('collated'), 0777, true);
+        } else {
+            File::deleteDirectory($this->getDownloadPath('collated'));
         }
 
         // Extract ZIP to location
         $zip = new Zip();
         $zip->open($this->getDownloadPath('archive.zip'));
-        $zip->extractTo($this->getDownloadPath('extracted'));
+        $toExtract = null;
 
         if (!empty($this->zipFolder)) {
-            // Remove all files and folders that do not meet the ZIP folder provided
-            $dir = new DirectoryIterator($this->getDownloadPath('extracted'));
+            $toExtract = [];
 
-            foreach ($dir as $item) {
-                if ($item->isDot()) {
-                    continue;
-                }
+            // Only get necessary files from the ZIP file
+            for ($i = 1; $i < $zip->numFiles; ++$i) {
+                $filename = $zip->statIndex($i)['name'];
 
-                $relativePath = str_replace($this->getDownloadPath('extracted/'), '', $item->getPathname());
-
-                if ($relativePath !== $this->zipFolder) {
-                    if ($item->isDir()) {
-                        File::deleteDirectory($item->getPathname());
-                    } else {
-                        File::delete($item->getPathname());
-                    }
+                if (strpos($filename, $this->zipFolder) === 0) {
+                    $toExtract[] = $filename;
                 }
             }
-
-            // Move remaining files into location
-            $dir = new DirectoryIterator($this->getDownloadPath('extracted/' . $this->zipFolder));
-
-            foreach ($dir as $item) {
-                if ($item->isDot()) {
-                    continue;
-                }
-
-                $relativePath = str_replace($this->getDownloadPath('extracted/' . $this->zipFolder . '/'), '', $item->getPathname());
-
-                rename($item->getPathname(), $this->getDownloadPath('extracted/' . $relativePath));
-            }
-
-            // Remove ZIP folder
-            File::deleteDirectory($this->getDownloadPath('extracted/' . $this->zipFolder));
         }
+
+        $zip->extractTo($this->getDownloadPath('extracted'), $toExtract);
+
+        // Move remaining files into location
+        $dir = new DirectoryIterator($this->getDownloadPath('extracted/' . $this->zipFolder));
+
+        foreach ($dir as $item) {
+            if ($item->isDot()) {
+                continue;
+            }
+
+            $relativePath = str_replace($this->getDownloadPath('extracted/' . $this->zipFolder . '/'), '', $item->getPathname());
+
+            rename($item->getPathname(), $this->getDownloadPath('collated/' . $relativePath));
+        }
+
+        // Remove ZIP folder
+        File::deleteDirectory($this->getDownloadPath('extracted/' . $this->zipFolder));
 
         // Remove ZIP file
         File::delete($this->getDownloadPath('archive.zip'));
@@ -305,6 +308,10 @@ abstract class BaseDocumentation implements Documentation
 
         if (File::exists($this->getDownloadPath('extracted'))) {
             File::deleteDirectory($this->getDownloadPath('extracted'));
+        }
+
+        if (File::exists($this->getDownloadPath('collated'))) {
+            File::deleteDirectory($this->getDownloadPath('collated'));
         }
     }
 
@@ -338,7 +345,7 @@ abstract class BaseDocumentation implements Documentation
     public function getProcessPath(string $suffix = ''): string
     {
         if ($this->isRemote()) {
-            $path = $this->getDownloadPath('extracted');
+            $path = $this->getDownloadPath('collated');
             if (!empty($suffix)) {
                 $path .= '/' . (ltrim(str_replace(['\\', '/'], '/', $suffix), '/'));
             }
