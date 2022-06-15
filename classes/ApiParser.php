@@ -111,7 +111,7 @@ class ApiParser
             // Find use cases
             $singleUses = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\Use_::class);
             $groupedUses = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\GroupUse::class);
-            $uses = $this->parseUseCases($namespace, $singleUses, $groupedUses);
+            $uses = $this->parseUseCases($singleUses, $groupedUses);
 
             // Ensure that we are dealing with a single class, trait or interface
             $objects = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\Class_::class);
@@ -276,7 +276,7 @@ class ApiParser
      * @param array $groupedUses
      * @return array
      */
-    protected function parseUseCases(string $namespace, array $singleUses = [], array $groupedUses = [])
+    protected function parseUseCases(array $singleUses = [], array $groupedUses = [])
     {
         $uses = [];
 
@@ -284,13 +284,13 @@ class ApiParser
         if (count($singleUses)) {
             foreach ($singleUses as $use) {
                 $name = (string) $use->uses[0]->name;
-                $fqClass = $this->resolveName($use->uses[0]->name, $namespace, []);
+                $fqClass = $this->resolveName($use->uses[0]->name, '', []);
 
                 $alias = (!is_null($use->uses[0]->alias))
                     ? $use->uses[0]->alias->name
-                    : null;
+                    : substr($fqClass, strrpos($fqClass, '\\') + 1);
 
-                $uses[$alias ?? $name] = [
+                $uses[$alias] = [
                     'class' => $fqClass,
                     'name' => $name,
                     'alias' => $alias,
@@ -309,9 +309,9 @@ class ApiParser
 
                     $alias = (!is_null($use->alias))
                         ? $use->alias->name
-                        : null;
+                        : substr($fqClass, strrpos($fqClass, '\\') + 1);
 
-                    $uses[$alias ?? $name] = [
+                    $uses[$alias] = [
                         'class' => $fqClass,
                         'name' => $name,
                         'alias' => $alias,
@@ -991,8 +991,8 @@ class ApiParser
     {
         foreach ($this->classes as $name => &$class)
         {
-            if ($class['type'] === 'interface' || $class['type'] === 'trait') {
-                // Traits and interfaces do not inherit anything
+            if ($class['type'] === 'interface') {
+                // Interfaces do not inherit anything
                 continue;
             }
 
@@ -1028,9 +1028,9 @@ class ApiParser
 
             // Get inherited methods, constants and properties
             if (
-                is_null($class['extends'])
-                && !count($class['traits'])
-                && !count($class['implements'])
+                !isset($class['extends'])
+                && empty($class['traits'])
+                && empty($class['implements'])
             ) {
                 unset($class['inherited']);
                 unset($class['inheritedDocs']);
@@ -1039,11 +1039,11 @@ class ApiParser
                 continue;
             }
 
-            if (!is_null($class['extends']) && isset($this->classes[$class['extends']])) {
+            if (!isset($class['extends']) && isset($this->classes[$class['extends']])) {
                 $this->processSingleInheritance($class, $this->classes[$class['extends']]);
             }
 
-            if (count($class['traits'])) {
+            if (isset($class['traits']) && count($class['traits'])) {
                 foreach ($class['traits'] as $trait) {
                     if (isset($this->classes[$trait])) {
                         $this->processSingleInheritance($class, $this->classes[$trait]);
@@ -1051,7 +1051,7 @@ class ApiParser
                 }
             }
 
-            if (count($class['implements'])) {
+            if (isset($class['implements']) && count($class['implements'])) {
                 foreach ($class['implements'] as $implements) {
                     if (isset($this->classes[$implements])) {
                         $this->processSingleInheritance($class, $this->classes[$implements]);
@@ -1093,6 +1093,15 @@ class ApiParser
     {
         // Compare methods, constants and properties of the parent and inherit anything not overwritten by the child
         // (or already inherited)
+
+        // Traits
+        if ($ancestor['type'] === 'class' && count($ancestor['traits'])) {
+            foreach ($ancestor['traits'] as $trait) {
+                if (!in_array($trait, $child['traits'])) {
+                    $child['traits'][] = $trait;
+                }
+            }
+        }
 
         // Methods
         $childMethods = array_merge(
