@@ -18,8 +18,8 @@ use PhpParser\Node\Stmt\Property;
 use PhpParser\Node\UnionType;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
-use Winter\Storm\Filesystem\Filesystem;
-use Winter\Storm\Halcyon\Datasource\FileDatasource;
+use Symfony\Component\Finder\Glob;
+use Winter\Storm\Support\Arr;
 
 /**
  * PHP API Parser.
@@ -32,40 +32,54 @@ use Winter\Storm\Halcyon\Datasource\FileDatasource;
  */
 class ApiParser
 {
-    /** @var array Base paths where files will be read */
-    protected $basePaths;
+    /** Base path where the documentation is tored. */
+    protected string $basePath;
 
-    /** @var array List of file paths found */
-    protected $paths = [];
+    /** Source paths where files will be read, relative to the base path. */
+    protected array $sourcePaths = [];
 
-    /** @var array List of namespaces encountered */
-    protected $namespaces = [];
+    /**
+     * Ignore paths.
+     *
+     * This will be an array with the path as a key, and a glob regex as the value to test the filename against.
+     */
+    protected array $ignorePaths = [];
 
-    /** @var array All classes scanned during parsing */
-    protected $classes = [];
+    /** List of file paths found */
+    protected array $paths = [];
 
-    /** @var array A list of paths that could not be parsed. */
-    protected $failedPaths = [];
+    /** List of namespaces encountered */
+    protected array $namespaces = [];
 
-    /** @var DocBlockFactory Factory instance for generating DocBlock reflections */
-    protected $docBlockFactory;
+    /** All classes scanned during parsing */
+    protected array $classes = [];
+
+    /** A list of paths that could not be parsed. */
+    protected array $failedPaths = [];
+
+    /** Factory instance for generating DocBlock reflections */
+    protected DocBlockFactory $docBlockFactory;
 
     /**
      * Constructor.
-     *
-     * @param array|string $basePath
      */
-    public function __construct($basePaths = [])
+    public function __construct(string $basePath, array|string $sourcePaths = [], array|string $ignorePaths = [])
     {
-        $this->basePaths = (is_string($basePaths)) ? [$basePaths] : $basePaths;
+        $this->basePath = (substr($basePath, -1) !== '/') ? ($basePath . '/') : $basePath;
+        $this->sourcePaths = (is_string($sourcePaths)) ? [$sourcePaths] : $sourcePaths;
+        $ignorePaths = (is_string($ignorePaths)) ? [$ignorePaths] : $ignorePaths;
+
+        if (count($ignorePaths)) {
+            foreach ($ignorePaths as $ignorePath) {
+                $this->ignorePaths[$ignorePath] = Glob::toRegex($this->basePath . ltrim($ignorePath, '/'));
+            }
+        }
     }
 
     /**
      * Parse the given base path for all PHP files and extract documentation information.
-     *
-     * @return void
      */
-    public function parse()
+    public function parse(): void
     {
         // Create parser and node finder
         $parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
@@ -110,7 +124,7 @@ class ApiParser
                     'error' => 'No object definition found.',
                 ];
                 continue;
-            } else if (count($objects) > 1) {
+            } elseif (count($objects) > 1) {
                 $this->failedPaths[] = [
                     'path' => $file,
                     'error' => 'More than one object definition exists in this path.',
@@ -156,17 +170,30 @@ class ApiParser
 
         $paths = [];
 
-        foreach ($this->basePaths as $basePath) {
-            $ds = new FileDatasource(
-                $basePath,
-                new Filesystem()
+        foreach ($this->sourcePaths as $sourcePath) {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($this->basePath . ltrim($sourcePath, '/'))
             );
 
-            $paths = array_merge($paths, array_map(function ($path) use ($basePath) {
-                return $basePath . '/' . $path['fileName'];
-            }, $ds->select('/', [
-                'extensions' => ['php']
-            ])));
+            foreach ($iterator as $path) {
+                if ($path->isDir()) {
+                    continue;
+                }
+
+                if (strtolower($path->getExtension()) !== 'php') {
+                    continue;
+                }
+
+                if (count($this->ignorePaths)) {
+                    foreach (array_values($this->ignorePaths) as $ignoreRegex) {
+                        if (preg_match($ignoreRegex, $path->getPathname())) {
+                            continue 2;
+                        }
+                    }
+                }
+
+                $paths[] = $path->getPathname();
+            }
         }
 
         return $this->paths = $paths;
@@ -174,6 +201,8 @@ class ApiParser
 
     /**
      * Get all namespaces.
+     *
+     * This should be run after `parse()`.
      *
      * @return array
      */
@@ -185,11 +214,58 @@ class ApiParser
     /**
      * Get all classes.
      *
+     * This should be run after `parse()`. Depending on how large a codebase is parsed, this could be a MASSIVE array,
+     * so it's recommended instead to get a class map and retrieve classes individually.
+     *
      * @return array
      */
     public function getClasses()
     {
         return $this->classes;
+    }
+
+    /**
+     * Gets a nested map of classes, based on namespace.
+     *
+     * This should be run after `parse()`.
+     *
+     * @return array
+     */
+    public function getClassMap()
+    {
+        $map = [];
+
+        foreach ($this->getNamespaces() as $namespace) {
+            $dotNamespace = str_replace('\\', '.', $namespace);
+            Arr::set($map, $dotNamespace, []);
+        }
+
+        // Insert class names into map
+        foreach (array_keys($this->classes) as $className) {
+            $dotClassName = str_replace('\\', '.', $className);
+            Arr::set($map, $dotClassName, $className);
+        }
+
+        $map = Arr::sortRecursive($map, SORT_STRING);
+
+        return $map;
+    }
+
+    /**
+     * Gets the details of a single class.
+     *
+     * This should be run after `parse()`. If the class does not exist in the parsed class list, `null` will be
+     * returned.
+     *
+     * @return array|null
+     */
+    public function getClass(string $class)
+    {
+        if (!array_key_exists($class, $this->classes)) {
+            return null;
+        }
+
+        return $this->classes[$class];
     }
 
     /**
@@ -274,6 +350,7 @@ class ApiParser
 
         return [
             'name' => $name,
+            'namespace' => $namespace,
             'type' => 'class',
             'class' => $fqClass,
             'extends' => $extends,
@@ -309,6 +386,7 @@ class ApiParser
 
         return [
             'name' => $name,
+            'namespace' => $namespace,
             'type' => 'interface',
             'class' => $fqClass,
             'docs' => $docs,
@@ -338,6 +416,7 @@ class ApiParser
 
         return [
             'name' => $name,
+            'namespace' => $namespace,
             'type' => 'trait',
             'class' => $fqClass,
             'docs' => $docs,
