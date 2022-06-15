@@ -1,17 +1,1 @@
-<ul>
-{% for item in mainNav %}
-    <li>
-        <span>{{ item.title }}</span>
-        {% if item.children %}
-        <ul>
-            {% for subitem in item.children %}
-                <li{% if subitem.active %} class="active"{% endif %}>
-                    <a href="{{ this.page.fileName | page({ slug: subitem.path }) }}">
-                        {{ subitem.title }}
-                    </a>
-                </li>
-            {% endfor %}
-        </ul>
-        {% endif %}
-{% endfor %}
-</ul>
+{% partial __SELF__ ~ '::menu-items' items=mainNav depth=1 %}

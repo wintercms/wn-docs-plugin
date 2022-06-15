@@ -10,5 +10,6 @@
             {% if item.children %}
                 {% partial __SELF__ ~ '::toc-items' items=item.children %}
             {% endif %}
+        </li>
     {% endfor %}
 </ul>
