@@ -110,21 +110,41 @@ class HtmlPage implements Page
         if ($navElement->childNodes->count() > 0) {
             foreach ($navElement->childNodes as $node) {
                 if ($node->nodeName === 'li') {
-                    $linkNode = $node->getElementsByTagName('a')->item(0);
+                    $linkNode = null;
+                    $spanNode = null;
+                    $subNavNode = null;
 
-                    // There must be a link node
-                    if (is_null($linkNode)) {
+                    foreach ($node->childNodes as $childNode) {
+                        if (empty($childNode->tagName)) {
+                            continue;
+                        }
+
+                        if ($childNode->tagName === 'a') {
+                            $linkNode = $childNode;
+                        } elseif ($childNode->tagName === 'span') {
+                            $spanNode = $childNode;
+                        } elseif ($childNode->tagName === 'ul') {
+                            $subNavNode = $childNode;
+                        }
+                    }
+
+                    // There must be a link node or a span node
+                    if (is_null($linkNode) && is_null($spanNode)) {
                         continue;
                     }
 
+                    if (!is_null($linkNode)) {
+                        $navItem = [
+                            'title' => $linkNode->textContent,
+                            'anchor' => $linkNode->attributes->getNamedItem('href')->value,
+                        ];
+                    } else {
+                        $navItem = [
+                            'title' => $spanNode->textContent,
+                        ];
+                    }
+
                     // There MAY be a subnav (<ul>) node
-                    $subNavNode = $node->getElementsByTagName('ul')->item(0);
-
-                    $navItem = [
-                        'title' => $linkNode->textContent,
-                        'anchor' => $linkNode->attributes->getNamedItem('href')->value,
-                    ];
-
                     if (!is_null($subNavNode)) {
                         $navItem['children'] = $this->processNav($subNavNode);
                     }
