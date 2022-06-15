@@ -7,20 +7,20 @@ use Winter\Docs\Classes\Contracts\Page;
 use Winter\Storm\Exception\ApplicationException;
 
 /**
- * Markdown Page instance.
+ * HTML Page instance.
  *
- * This is a representation of the Markdown page. It expects the page to have been processed into
+ * This is a representation of the documentation page. It expects the page to have been processed into
  * raw HTML.
  *
  * @author Ben Thomson <git@alfreido.com>
  * @copyright Winter CMS
  */
-class MarkdownPage implements Page
+class HtmlPage implements Page
 {
     /**
-     * Markdown Documentation instance.
+     * Documentation instance.
      */
-    protected MarkdownDocumentation $docs;
+    protected BaseDocumentation $docs;
 
     /**
      * The path of this page, relative in the processed disk storage.
@@ -43,7 +43,7 @@ class MarkdownPage implements Page
     /**
      * Constructor.
      */
-    public function __construct(MarkdownDocumentation $docs, string $path, string $title)
+    public function __construct(BaseDocumentation $docs, string $path, string $title)
     {
         $this->docs = $docs;
         $this->path = $path;
@@ -61,7 +61,7 @@ class MarkdownPage implements Page
         if (is_null($content)) {
             throw new ApplicationException(
                 sprintf(
-                    'Unable to load processed Markdown file at path "%s"',
+                    'Unable to load processed file at path "%s"',
                     $this->path . '.htm'
                 )
             );
