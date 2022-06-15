@@ -157,6 +157,9 @@ class ApiParser
 
         // Once we've parsed the classes, we need to determine inheritance
         $this->processInheritance();
+
+        // Finally, add some contextualisation to certain aspects
+        $this->processContext();
     }
 
     /**
@@ -1356,6 +1359,31 @@ class ApiParser
                             $const['constant']['docs'] = $ancestorConst['docs'];
                             $this->processInheritedDocs('constant', $const['constant']);
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Adds additional context to some properties.
+     *
+     * @return void
+     */
+    protected function processContext()
+    {
+        foreach ($this->classes as $name => &$class) {
+            // Local traits are applied first in the inheritance chain
+            if (isset($class['traits']) && count($class['traits'])) {
+                foreach ($class['traits'] as &$trait) {
+                    if (isset($this->classes[$trait])) {
+                        $trait = [
+                            'name' => $this->classes[$trait]['name'],
+                            'class' => $this->classes[$trait]['class'],
+                            'summary' => $this->classes[$trait]['docs']['summary']
+                                ?? $this->classes[$trait]['docs']['body']
+                                ?? null,
+                        ];
                     }
                 }
             }
