@@ -85,10 +85,16 @@ class ApiParser
         $parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
         $nodeFinder = new NodeFinder;
 
+        // Add name resolver
+        $nameResolver = new \PhpParser\NodeVisitor\NameResolver;
+        $nodeTraverser = new \PhpParser\NodeTraverser;
+        $nodeTraverser->addVisitor($nameResolver);
+
         foreach ($this->getPaths() as $file) {
             // Parse PHP file
             try {
                 $parsed = $parser->parse(file_get_contents($file));
+                $parsed = $nodeTraverser->traverse($parsed);
             } catch (Error $error) {
                 $this->failedPaths[] = [
                     'path' => $file,
@@ -449,6 +455,7 @@ class ApiParser
                     'value' => 'unknown',
                     'docs' => $this->parseDocBlock($constant->getDocComment(), $namespace, $uses),
                     'line' => $constant->getStartLine(),
+                    'inherited' => false,
                 ];
             }
 
@@ -458,6 +465,7 @@ class ApiParser
                 'value' => (string) json_encode($value),
                 'docs' => $this->parseDocBlock($constant->getDocComment(), $namespace, $uses),
                 'line' => $constant->getStartLine(),
+                'inherited' => false,
             ];
         }, $class->getConstants());
     }
@@ -482,6 +490,7 @@ class ApiParser
                     : (($property->isProtected()) ? 'protected' : 'private'),
                 'docs' => $this->parseDocBlock($property->getDocComment(), $namespace, $uses),
                 'line' => $property->getStartLine(),
+                'inherited' => false,
             ];
         }, $class->getProperties());
     }
@@ -510,7 +519,8 @@ class ApiParser
                     : (($method->isProtected()) ? 'protected' : 'private'),
                 'docs' => $docs,
                 'params' => $this->processMethodParams($method, $namespace, $uses, $docs),
-                'lines' => [$method->getStartLine(), $method->getEndLine()]
+                'lines' => [$method->getStartLine(), $method->getEndLine()],
+                'inherited' => false,
             ];
         }, $class->getMethods());
     }
@@ -747,9 +757,11 @@ class ApiParser
             return $uses[(string) $name]['class'];
         }
 
-        if (method_exists($name, 'isQualified') && !$name->isQualified() && (is_null($alias))) {
-            return $namespace . '\\' . (string) $name;
-        } else if (!is_null($alias)) {
+        if ($name instanceof \PhpParser\Node\Name\FullyQualified) {
+            return $name->toString();
+        } elseif ($name instanceof \PhpParser\Node\Name\Relative) {
+            return $namespace . '\\' . $name->toString();
+        } elseif (!is_null($alias)) {
             if (array_key_exists((string) $alias, $uses)) {
                 return $uses[(string) $alias]['class'];
             } else {
@@ -989,19 +1001,11 @@ class ApiParser
      */
     protected function processInheritance()
     {
-        foreach ($this->classes as $name => &$class)
-        {
+        foreach ($this->classes as $name => &$class) {
             if ($class['type'] === 'interface') {
                 // Interfaces do not inherit anything
                 continue;
             }
-
-            // Set initial inheritance
-            $class['inherited'] = [
-                'properties' => [],
-                'constants' => [],
-                'methods' => [],
-            ];
 
             // Determine docs to inherit
             $class['inheritedDocs'] = [
@@ -1032,17 +1036,13 @@ class ApiParser
                 && empty($class['traits'])
                 && empty($class['implements'])
             ) {
-                unset($class['inherited']);
                 unset($class['inheritedDocs']);
 
                 // No inheritance for this class
                 continue;
             }
 
-            if (!isset($class['extends']) && isset($this->classes[$class['extends']])) {
-                $this->processSingleInheritance($class, $this->classes[$class['extends']]);
-            }
-
+            // Local traits are applied first in the inheritance chain
             if (isset($class['traits']) && count($class['traits'])) {
                 foreach ($class['traits'] as $trait) {
                     if (isset($this->classes[$trait])) {
@@ -1051,27 +1051,19 @@ class ApiParser
                 }
             }
 
+            // Next, the parent class is inherited.
+            if (isset($class['extends']) && isset($this->classes[$class['extends']])) {
+                $this->processSingleInheritance($class, $this->classes[$class['extends']]);
+            }
+
+            // We'll also inherit the implements, but mainly for the docs, since all its methods
+            // SHOULD be overridden already
             if (isset($class['implements']) && count($class['implements'])) {
                 foreach ($class['implements'] as $implements) {
                     if (isset($this->classes[$implements])) {
                         $this->processSingleInheritance($class, $this->classes[$implements]);
                     }
                 }
-            }
-
-            // Unset empty inheritance
-            unset($class['inheritedDocs']);
-            if (!count($class['inherited']['methods'])) {
-                unset($class['inherited']['methods']);
-            }
-            if (!count($class['inherited']['properties'])) {
-                unset($class['inherited']['properties']);
-            }
-            if (!count($class['inherited']['constants'])) {
-                unset($class['inherited']['constants']);
-            }
-            if (!count($class['inherited'])) {
-                unset($class['inherited']);
             }
         }
 
@@ -1104,14 +1096,10 @@ class ApiParser
         }
 
         // Methods
-        $childMethods = array_merge(
-            array_map(function ($method) {
-                return $method['name'];
-            }, $child['methods'] ?? []),
-            array_map(function ($method) {
-                return $method['method']['name'];
-            }, $child['inherited']['methods'])
-        );
+        $childMethods = array_map(function ($method) {
+            return $method['name'];
+        }, $child['methods'] ?? []);
+
         $ancestorMethods = array_map(function ($method) {
             return $method['name'];
         }, $ancestor['methods'] ?? []);
@@ -1120,12 +1108,17 @@ class ApiParser
 
         if (count($inheritedMethods)) {
             foreach ($inheritedMethods as $method) {
-                $child['inherited']['methods'][] = [
-                    'class' => $ancestor['class'],
-                    'method' => array_first($ancestor['methods'], function ($ancestorMethod) use ($method) {
+                $child['methods'][] = array_replace(
+                    array_first($ancestor['methods'], function ($ancestorMethod) use ($method) {
                         return $ancestorMethod['name'] === $method;
                     }),
-                ];
+                    [
+                        'inherited' => [
+                            'name' => $child['name'],
+                            'class' => $child['class'],
+                        ],
+                    ]
+                );
             }
         }
 
@@ -1153,14 +1146,10 @@ class ApiParser
         }
 
         // Properties
-        $childProps = array_merge(
-            array_map(function ($property) {
-                return $property['name'];
-            }, $child['properties'] ?? []),
-            array_map(function ($property) {
-                return $property['property']['name'];
-            }, $child['inherited']['properties'])
-        );
+        $childProps = array_map(function ($property) {
+            return $property['name'];
+        }, $child['properties'] ?? []);
+
         $ancestorProps = array_map(function ($property) {
             return $property['name'];
         }, $ancestor['properties'] ?? []);
@@ -1169,12 +1158,17 @@ class ApiParser
 
         if (count($inheritedProps)) {
             foreach ($inheritedProps as $property) {
-                $child['inherited']['properties'][] = [
-                    'class' => $ancestor['class'],
-                    'property' => array_first($ancestor['properties'], function ($ancestorProp) use ($property) {
+                $child['properties'][] = array_replace(
+                    array_first($ancestor['properties'], function ($ancestorProp) use ($property) {
                         return $ancestorProp['name'] === $property;
                     }),
-                ];
+                    [
+                        'inherited' => [
+                            'name' => $child['name'],
+                            'class' => $child['class'],
+                        ],
+                    ]
+                );
             }
         }
 
@@ -1201,14 +1195,10 @@ class ApiParser
             }
         }
 
-        $childConsts = array_merge(
-            array_map(function ($constant) {
-                return $constant['name'];
-            }, $child['constants'] ?? []),
-            array_map(function ($constant) {
-                return $constant['constant']['name'];
-            }, $child['inherited']['constants'])
-        );
+        $childConsts = array_map(function ($constant) {
+            return $constant['name'];
+        }, $child['constants'] ?? []);
+
         $ancestorConsts = array_map(function ($constant) {
             return $constant['name'];
         }, $ancestor['constants'] ?? []);
@@ -1217,12 +1207,17 @@ class ApiParser
 
         if (count($inheritedConsts)) {
             foreach ($inheritedConsts as $constant) {
-                $child['inherited']['constants'][] = [
-                    'class' => $ancestor['class'],
-                    'constant' => array_first($ancestor['constants'], function ($ancestorConst) use ($constant) {
+                $child['constants'][] = array_replace(
+                    array_first($ancestor['constants'], function ($ancestorConst) use ($constant) {
                         return $ancestorConst['name'] === $constant;
                     }),
-                ];
+                    [
+                        'inherited' => [
+                            'name' => $child['name'],
+                            'class' => $child['class'],
+                        ],
+                    ]
+                );
             }
         }
 
@@ -1259,16 +1254,16 @@ class ApiParser
                 || count($ancestor['implements'])
             )
         ) {
-            if (!is_null($ancestor['extends']) && isset($this->classes[$ancestor['extends']])) {
-                $this->processSingleInheritance($child, $this->classes[$ancestor['extends']]);
-            }
-
             if (count($ancestor['traits'])) {
                 foreach ($ancestor['traits'] as $trait) {
                     if (isset($this->classes[$trait])) {
                         $this->processSingleInheritance($child, $this->classes[$trait]);
                     }
                 }
+            }
+
+            if (!is_null($ancestor['extends']) && isset($this->classes[$ancestor['extends']])) {
+                $this->processSingleInheritance($child, $this->classes[$ancestor['extends']]);
             }
 
             if (count($ancestor['implements'])) {
