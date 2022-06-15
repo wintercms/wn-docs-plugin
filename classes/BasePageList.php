@@ -55,38 +55,44 @@ abstract class BasePageList implements PageList
     public function setActivePage(Page $page): void
     {
         $this->activePage = $page;
+        $fullNav = $this->navigation;
 
-        // Find the page within the navigation and add an "active" state to the page, and a
-        // "childActive" state to the section.
-        foreach ($this->navigation as $key => $nav) {
+        $childIterator = function (&$nav) use (&$childIterator) {
+            $childActive = false;
+
             if (isset($nav['path'])) {
                 if (isset($this->pages[$nav['path']]) && $this->pages[$nav['path']] === $this->activePage) {
-                    $this->navigation[$key]['active'] = true;
+                    $nav['active'] = true;
+                    $childActive = true;
                 } else {
-                    unset($this->navigation[$key]['active']);
+                    unset($nav['active']);
                 }
             }
-            if (isset($nav['children'])) {
-                $childActive = false;
 
-                foreach ($nav['children'] as $subKey => $subNav) {
-                    if (isset($subNav['path'])) {
-                        if (isset($this->pages[$subNav['path']]) && $this->pages[$subNav['path']] === $this->activePage) {
-                            $this->navigation[$key]['children'][$subKey]['active'] = true;
-                            $childActive = true;
-                        } else {
-                            unset($this->navigation[$key]['children'][$subKey]['active']);
-                        }
+            if (isset($nav['children'])) {
+                foreach ($nav['children'] as $subKey => &$subNav) {
+                    if ($childIterator($subNav) === true) {
+                        $childActive = true;
                     }
                 }
 
                 if ($childActive) {
-                    $this->navigation[$key]['childActive'] = true;
+                    $nav['childActive'] = true;
                 } else {
-                    unset($this->navigation[$key]['childActive']);
+                    unset($nav['childActive']);
                 }
             }
+
+            return $childActive;
+        };
+
+        // Find the page within the navigation and add an "active" state to the page, and a
+        // "childActive" state to the section.
+        foreach ($fullNav as $key => &$nav) {
+            $childIterator($nav);
         }
+
+        $this->navigation = $fullNav;
     }
 
     /**

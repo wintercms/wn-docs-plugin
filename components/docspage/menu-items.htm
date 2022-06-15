@@ -1,6 +1,6 @@
 <ul class="menu-depth-{{ depth }}">
     {% for item in items %}
-        <li{% if item.active %} class="active"{% endif %}>
+        <li{% if item.active %} class="active"{% elseif item.childActive %} class="child-active"{% endif %}>
             {% if item.path %}
                 <a href="{{ this.page.fileName | page({ slug: item.path }) }}">
                     {{ item.title }}
