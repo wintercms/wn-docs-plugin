@@ -30,7 +30,6 @@ use Winter\Storm\Support\Arr;
  * @author Ben Thomson <git@alfreido.com>
  * @author Winter CMS
  */
-class ApiParser
 {
     /** Base path where the documentation is tored. */
     protected string $basePath;
@@ -464,7 +463,6 @@ class ApiParser
 
             return [
                 'name' => (string) $constant->consts[0]->name,
-                'type' => $this->normaliseType(gettype($value)),
                 'value' => (string) json_encode($value),
                 'docs' => $this->parseDocBlock($constant->getDocComment(), $namespace, $uses),
                 'line' => $constant->getStartLine(),
@@ -814,11 +812,6 @@ class ApiParser
         }
 
         if (!is_null($property->props[0]->default)) {
-            if ($property->props[0]->default instanceof \PhpParser\Node\Expr\Array_) {
-                return 'array';
-            }
-
-            return $this->normaliseType(gettype($property->props[0]->default));
         }
 
         $docs = $this->parseDocBlock($property->getDocComment(), $namespace, $uses);
@@ -877,11 +870,6 @@ class ApiParser
         }
 
         if (!is_null($param->default)) {
-            if ($param->default instanceof \PhpParser\Node\Expr\Array_) {
-                $type = 'array';
-            } else {
-                $type = $this->normaliseType(gettype($param->default));
-            }
         }
 
         if (!empty($docs) && !empty($docs['params'][(string) $param->var->name])) {
@@ -981,12 +969,8 @@ class ApiParser
     /**
      * Normalise type names.
      *
-     * Really, this is just for "int" vs. "integer".
-     *
-     * @param string $type
      * @return string
      */
-    protected function normaliseType(string $type)
     {
         switch ($type) {
             case 'int':

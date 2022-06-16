@@ -1,11 +1,11 @@
 <?php namespace Winter\Docs\Tests\Classes;
 
 use TestCase;
-use Winter\Docs\Classes\ApiParser;
+use Winter\Docs\Classes\PHPApiParser;
 
 /**
- * @covers \Winter\Docs\Classes\ApiParser
- * @testdox The API Parser class (\Winter\Docs\Classes\ApiParser)
+ * @covers \Winter\Docs\Classes\PHPApiParser
+ * @testdox The API Parser class (\Winter\Docs\Classes\PHPApiParser)
  */
 class ApiParserTest extends TestCase
 {
@@ -15,14 +15,14 @@ class ApiParserTest extends TestCase
     {
         parent::setUp();
 
-        $this->apiParser = new ApiParser([
-            dirname(dirname(__DIR__)) . '/fixtures/api',
-            dirname(dirname(__DIR__)) . '/fixtures/utilities'
+        $this->apiParser = new PHPApiParser(dirname(dirname(__DIR__)) . '/fixtures', [
+            'api',
+            'utilities',
         ]);
     }
 
     /**
-     * @covers \Winter\Docs\Classes\ApiParser::getPaths()
+     * @covers \Winter\Docs\Classes\PHPApiParser::getPaths()
      * @testdox can get the paths of all PHP files in a given codebase.
      */
     public function testGetPaths()
@@ -45,7 +45,7 @@ class ApiParserTest extends TestCase
     }
 
     /**
-     * @covers \Winter\Docs\Classes\ApiParser::parse()
+     * @covers \Winter\Docs\Classes\PHPApiParser::parse()
      * @testdox can parse all PHP files and present the schema in an array.
      */
     public function testParse()

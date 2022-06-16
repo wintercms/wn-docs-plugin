@@ -98,7 +98,7 @@ class PHPApiDocumentation extends BaseDocumentation
             $basePath = $this->getProcessPath();
         }
 
-        $apiParser = new ApiParser($basePath, $this->sourcePaths, $this->ignoredPaths);
+        $apiParser = new PHPApiParser($basePath, $this->sourcePaths, $this->ignoredPaths);
         $apiParser->parse();
         $classMap = $apiParser->getClassMap();
 
@@ -125,7 +125,7 @@ class PHPApiDocumentation extends BaseDocumentation
         );
     }
 
-    protected function processClassLevel(ApiParser $parser, array $classMap, array &$nav, string $baseNamespace = '')
+    protected function processClassLevel(PHPApiParser $parser, array $classMap, array &$nav, string $baseNamespace = '')
     {
         foreach ($classMap as $key => $value) {
             if (is_array($value)) {
