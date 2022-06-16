@@ -30,6 +30,7 @@ use Winter\Storm\Support\Arr;
  * @author Ben Thomson <git@alfreido.com>
  * @author Winter CMS
  */
+class PHPApiParser
 {
     /** Base path where the documentation is tored. */
     protected string $basePath;
@@ -463,6 +464,7 @@ use Winter\Storm\Support\Arr;
 
             return [
                 'name' => (string) $constant->consts[0]->name,
+                'type' => $this->normaliseType($value),
                 'value' => (string) json_encode($value),
                 'docs' => $this->parseDocBlock($constant->getDocComment(), $namespace, $uses),
                 'line' => $constant->getStartLine(),
@@ -812,6 +814,10 @@ use Winter\Storm\Support\Arr;
         }
 
         if (!is_null($property->props[0]->default)) {
+            $defaultType = $this->normaliseType($property->props[0]->default);
+            if ($defaultType !== 'mixed') {
+                return $defaultType;
+            }
         }
 
         $docs = $this->parseDocBlock($property->getDocComment(), $namespace, $uses);
@@ -870,6 +876,7 @@ use Winter\Storm\Support\Arr;
         }
 
         if (!is_null($param->default)) {
+            $type = $this->normaliseType($param->default);
         }
 
         if (!empty($docs) && !empty($docs['params'][(string) $param->var->name])) {
@@ -969,9 +976,75 @@ use Winter\Storm\Support\Arr;
     /**
      * Normalise type names.
      *
+     * @param mixed $type
      * @return string
      */
+    protected function normaliseType($type)
     {
+        if ($type instanceof \PhpParser\Node) {
+            if ($type instanceof \PhpParser\Node\Expr\Array_) {
+                return 'array';
+            }
+
+            if ($type instanceof \PhpParser\Node\Scalar\String_) {
+                return 'string';
+            }
+
+            if ($type instanceof \PhpParser\Node\Expr\ConstFetch) {
+                if (!empty($type->name)) {
+                    if ($type->name->parts[0] === 'true' || $type->name->parts[0] === 'false') {
+                        return 'bool';
+                    }
+
+                    return 'mixed';
+                }
+            }
+
+            if ($type instanceof \PhpParser\Node\Expr\ClassConstFetch) {
+                $const = $type->name;
+
+                // Class identifier constant
+                if ($const === 'class') {
+                    return 'string';
+                }
+
+                return 'mixed';
+            }
+
+            if ($type instanceof \PhpParser\Node\Expr\UnaryMinus) {
+                return 'float';
+            }
+
+            if (
+                $type instanceof \PhpParser\Node\Scalar\DNumber
+                || $type instanceof \PhpParser\Node\Scalar\LNumber
+            ) {
+                $type = gettype($type->value);
+
+                switch ($type) {
+                    case 'int':
+                        $type = 'integer';
+                        break;
+                }
+
+                return $type;
+            }
+
+            return get_class($type);
+        } elseif (is_string($type)) {
+            if (array_key_exists(ltrim($type, '\\'), $this->classes)) {
+                return [
+                    'name' => $this->classes[ltrim($type, '\\')]['name'],
+                    'class' => $this->classes[ltrim($type, '\\')]['class'],
+                ];
+            }
+            if (strpos('\\', $type)) {
+                return $type;
+            }
+        } else {
+            $type = gettype($type);
+        }
+
         switch ($type) {
             case 'int':
                 $type = 'integer';
@@ -1101,8 +1174,8 @@ use Winter\Storm\Support\Arr;
                     }),
                     [
                         'inherited' => [
-                            'name' => $child['name'],
-                            'class' => $child['class'],
+                            'name' => $ancestor['name'],
+                            'class' => $ancestor['class'],
                         ],
                     ]
                 );
@@ -1151,8 +1224,8 @@ use Winter\Storm\Support\Arr;
                     }),
                     [
                         'inherited' => [
-                            'name' => $child['name'],
-                            'class' => $child['class'],
+                            'name' => $ancestor['name'],
+                            'class' => $ancestor['class'],
                         ],
                     ]
                 );
@@ -1200,8 +1273,8 @@ use Winter\Storm\Support\Arr;
                     }),
                     [
                         'inherited' => [
-                            'name' => $child['name'],
-                            'class' => $child['class'],
+                            'name' => $ancestor['name'],
+                            'class' => $ancestor['class'],
                         ],
                     ]
                 );
@@ -1357,7 +1430,6 @@ use Winter\Storm\Support\Arr;
     protected function processContext()
     {
         foreach ($this->classes as $name => &$class) {
-            // Local traits are applied first in the inheritance chain
             if (isset($class['traits']) && count($class['traits'])) {
                 foreach ($class['traits'] as &$trait) {
                     if (isset($this->classes[$trait])) {
