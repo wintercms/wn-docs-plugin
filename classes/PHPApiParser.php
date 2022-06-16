@@ -1434,15 +1434,98 @@ class PHPApiParser
                 foreach ($class['traits'] as &$trait) {
                     if (isset($this->classes[$trait])) {
                         $trait = [
-                            'name' => $this->classes[$trait]['name'],
+                            'name' => $this->classes[$trait]['name'] ?? $this->classes[$trait]['class'],
                             'class' => $this->classes[$trait]['class'],
                             'summary' => $this->classes[$trait]['docs']['summary']
                                 ?? $this->classes[$trait]['docs']['body']
                                 ?? null,
                         ];
+                    } else {
+                        $trait = [
+                            'name' => $trait,
+                            'class' => $trait,
+                        ];
                     }
                 }
             }
+
+            $this->sortDefinitions($class);
+        }
+    }
+
+    /**
+     * Sorts definitions in a class.
+     *
+     * At a minimum, all listable elements will be sorted by name. In terms of properties and methods,
+     * these will also be sorted by visibility and inheritence.
+     *
+     * @param array $class
+     * @return void
+     */
+    protected function sortDefinitions(array &$class)
+    {
+        $visibilityRanks = [
+            'public' => 1,
+            'protected' => 2,
+            'private' => 3,
+        ];
+
+        // Traits
+        if (isset($class['traits']) && count($class['traits']) > 1) {
+            $names = array_column($class['traits'], 'name');
+
+            array_multisort(
+                $names, SORT_STRING, SORT_ASC,
+                $class['traits']
+            );
+        }
+
+        // Properties
+        if (isset($class['properties']) && count($class['properties']) > 1) {
+            $names = array_column($class['properties'], 'name');
+            $visibility = [];
+            $inherited = [];
+
+            foreach ($class['properties'] as $key => $property) {
+                $inherited[$key] = ($property['inherited'] === false) ? 1 : 2;
+                $visibility[$key] = $visibilityRanks[$property['visibility']];
+            }
+
+            array_multisort(
+                $inherited, SORT_NUMERIC, SORT_ASC,
+                $visibility, SORT_NUMERIC, SORT_ASC,
+                $names, SORT_STRING, SORT_ASC,
+                $class['properties']
+            );
+        }
+
+        // Constants
+        if (isset($class['constants']) && count($class['constants']) > 1) {
+            $names = array_column($class['constants'], 'name');
+
+            array_multisort(
+                $names, SORT_STRING, SORT_ASC,
+                $class['constants']
+            );
+        }
+
+        // Methods
+        if (isset($class['methods']) && count($class['methods']) > 1) {
+            $names = array_column($class['methods'], 'name');
+            $visibility = [];
+            $inherited = [];
+
+            foreach ($class['methods'] as $key => $property) {
+                $inherited[$key] = ($property['inherited'] === false) ? 1 : 2;
+                $visibility[$key] = $visibilityRanks[$property['visibility']];
+            }
+
+            array_multisort(
+                $inherited, SORT_NUMERIC, SORT_ASC,
+                $visibility, SORT_NUMERIC, SORT_ASC,
+                $names, SORT_STRING, SORT_ASC,
+                $class['methods']
+            );
         }
     }
 }
