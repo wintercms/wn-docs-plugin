@@ -454,7 +454,10 @@ class PHPApiParser
             } catch (ConstExprEvaluationException $e) {
                 return [
                     'name' => (string) $constant->consts[0]->name,
-                    'type' => 'mixed',
+                    'type' => [
+                        'definition' => 'scalar',
+                        'type' => 'mixed',
+                    ],
                     'value' => 'unknown',
                     'docs' => $this->parseDocBlock($constant->getDocComment(), $namespace, $uses),
                     'line' => $constant->getStartLine(),
@@ -633,7 +636,10 @@ class PHPApiParser
             if ($var instanceof InvalidTag) {
                 $details['summary'] = (string) $var;
                 $details['var'] = [
-                    'type' => 'mixed',
+                    'type' => [
+                        'definition' => 'scalar',
+                        'type' => 'mixed',
+                    ],
                 ];
             } else {
                 if (empty($details['summary']) && !empty($var->getDescription())) {
@@ -652,7 +658,10 @@ class PHPApiParser
             foreach ($docBlock->getTagsByName('param') as $key => $tag) {
                 if ($tag instanceof InvalidTag) {
                     $details['params'][(string) $key] = [
-                        'type' => 'mixed',
+                        'type' => [
+                            'definition' => 'scalar',
+                            'type' => 'mixed',
+                        ],
                         'summary' => (string) $tag,
                     ];
                 } else {
@@ -682,7 +691,10 @@ class PHPApiParser
 
             if ($return instanceof InvalidTag) {
                 $details['return'] = [
-                    'type' => 'mixed',
+                    'type' => [
+                        'definition' => 'scalar',
+                        'type' => 'mixed',
+                    ],
                     'summary' => (string) $return,
                 ];
             } else {
@@ -714,7 +726,10 @@ class PHPApiParser
     protected function getDocType(?Type $type, string $namespace, array $uses = [])
     {
         if (is_null($type)) {
-            return 'mixed';
+            return [
+                'definition' => 'scalar',
+                'type' => 'mixed',
+            ];
         }
 
         // Handle compound types
@@ -725,15 +740,15 @@ class PHPApiParser
                 if ($item instanceof Object_ && !is_null($item->getFqsen())) {
                     $types[] = $this->resolveName($item->getFqsen()->getName(), $namespace, $uses);
                 } else {
-                    $types[] = $this->normaliseType($this->resolveName((string) $item, $namespace, $uses));
+                    $types[] = $this->resolveName((string) $item, $namespace, $uses);
                 }
             }
 
-            return $types;
+            return $this->normaliseType($types);
         }
 
         if ($type instanceof Object_ && !is_null($type->getFqsen())) {
-            return $this->resolveName($type->getFqsen()->getName(), $namespace, $uses);
+            return $this->normaliseType($this->resolveName($type->getFqsen()->getName(), $namespace, $uses));
         } else {
             return $this->normaliseType($this->resolveName((string) $type, $namespace, $uses));
         }
@@ -792,22 +807,18 @@ class PHPApiParser
     {
         if (!is_null($property->type)) {
             if ($property->type instanceof NullableType) {
-                return [
-                    $this->normaliseType($this->resolveName($property->type->type, $namespace, $uses)),
+                return $this->normaliseType([
+                    $this->resolveName($property->type->type, $namespace, $uses),
                     'null',
-                ];
+                ]);
             } elseif ($property->type instanceof UnionType) {
                 $types = [];
 
                 foreach ($property->type->types as $item) {
-                    if ($item instanceof Object_ && !is_null($item->getFqsen())) {
-                        $types[] = $this->resolveName($item->getFqsen()->getName(), $namespace, $uses);
-                    } else {
-                        $types[] = $this->normaliseType($this->resolveName((string) $item, $namespace, $uses));
-                    }
+                    $types[] = $this->resolveName((string) $item, $namespace, $uses);
                 }
 
-                return $types;
+                return $this->normaliseType($types);
             }
 
             return $this->normaliseType($this->resolveName($property->type, $namespace, $uses));
@@ -815,7 +826,7 @@ class PHPApiParser
 
         if (!is_null($property->props[0]->default)) {
             $defaultType = $this->normaliseType($property->props[0]->default);
-            if ($defaultType !== 'mixed') {
+            if ($defaultType['definition'] !== 'scalar' && $defaultType['type'] !== 'mixed') {
                 return $defaultType;
             }
         }
@@ -823,14 +834,13 @@ class PHPApiParser
         $docs = $this->parseDocBlock($property->getDocComment(), $namespace, $uses);
 
         if (!empty($docs['var'])) {
-            return (is_array($docs['var']['type']))
-                ? array_map(function ($item) {
-                    return $this->normaliseType($item);
-                }, $docs['var']['type'])
-                : $this->normaliseType($docs['var']['type']);
+            return $docs['var']['type'];
         }
 
-        return 'mixed';
+        return [
+            'definition' => 'scalar',
+            'type' => 'mixed',
+        ];
     }
 
     /**
@@ -849,27 +859,26 @@ class PHPApiParser
      */
     protected function getParamType(Param $param, string $namespace, array $uses = [], ?array $docs = [])
     {
-        $type = 'mixed';
+        $type = [
+            'definition' => 'scalar',
+            'type' => 'mixed',
+        ];
         $summary = null;
 
         if (!is_null($param->type)) {
             if ($param->type instanceof NullableType) {
-                $type = [
-                    $this->normaliseType($this->resolveName($param->type->type, $namespace, $uses)),
+                $type = $this->normaliseType([
+                    $this->resolveName($param->type->type, $namespace, $uses),
                     'null',
-                ];
+                ]);
             } elseif ($param->type instanceof UnionType) {
                 $types = [];
 
                 foreach ($param->type->types as $item) {
-                    if ($item instanceof Object_ && !is_null($item->getFqsen())) {
-                        $types[] = $this->resolveName($item->getFqsen()->getName(), $namespace, $uses);
-                    } else {
-                        $types[] = $this->normaliseType($this->resolveName((string) $item, $namespace, $uses));
-                    }
+                    $types[] = $this->resolveName((string) $item, $namespace, $uses);
                 }
 
-                $type = $types;
+                $type = $this->normaliseType($types);
             } else {
                 $type = $this->normaliseType($this->resolveName($param->type, $namespace, $uses));
             }
@@ -880,7 +889,7 @@ class PHPApiParser
         }
 
         if (!empty($docs) && !empty($docs['params'][(string) $param->var->name])) {
-            $type = ($type === 'mixed') ? $docs['params'][(string) $param->var->name]['type'] : $type;
+            $type = ($type['definition'] === 'scalar' && $type['type'] === 'mixed') ? $docs['params'][(string) $param->var->name]['type'] : $type;
             $summary = $docs['params'][(string) $param->var->name]['summary'] ?? null;
         }
 
@@ -904,27 +913,26 @@ class PHPApiParser
      */
     protected function getReturnType(FunctionLike $method, string $namespace, array $uses = [])
     {
-        $type = 'mixed';
+        $type = [
+            'definition' => 'scalar',
+            'type' => 'mixed',
+        ];
         $summary = null;
 
         if (!is_null($method->returnType)) {
             if ($method->returnType instanceof NullableType) {
-                $type = [
-                    $this->normaliseType($this->resolveName($method->returnType->type, $namespace, $uses)),
+                $type = $this->normaliseType([
+                    $this->resolveName($method->returnType->type, $namespace, $uses),
                     'null',
-                ];
+                ]);
             } elseif ($method->returnType instanceof UnionType) {
                 $types = [];
 
                 foreach ($method->returnType->types as $item) {
-                    if ($item instanceof Object_ && !is_null($item->getFqsen())) {
-                        $types[] = $this->resolveName($item->getFqsen()->getName(), $namespace, $uses);
-                    } else {
-                        $types[] = $this->normaliseType($this->resolveName((string) $item, $namespace, $uses));
-                    }
+                    $types[] = $this->resolveName((string) $item, $namespace, $uses);
                 }
 
-                $type = $types;
+                $type = $this->normaliseType($types);
             } else {
                 $type = $this->normaliseType($this->resolveName($method->returnType, $namespace, $uses));
             }
@@ -933,7 +941,7 @@ class PHPApiParser
         $docs = $this->parseDocBlock($method->getDocComment(), $namespace, $uses);
 
         if (!empty($docs['return'])) {
-            $type = ($type === 'mixed') ? $docs['return']['type'] : $type;
+            $type = ($type['definition'] === 'scalar' && $type['type'] === 'mixed') ? $docs['return']['type'] : $type;
             $summary = $docs['return']['summary'];
         }
 
@@ -981,22 +989,43 @@ class PHPApiParser
      */
     protected function normaliseType($type)
     {
+        if (is_array($type) && Arr::isList($type)) {
+            return [
+                'definition' => 'union',
+                'types' => array_map(function ($item) {
+                    return $this->normaliseType($item);
+                }, $type)
+            ];
+        }
+
         if ($type instanceof \PhpParser\Node) {
             if ($type instanceof \PhpParser\Node\Expr\Array_) {
-                return 'array';
+                return [
+                    'definition' => 'scalar',
+                    'type' => 'array',
+                ];
             }
 
             if ($type instanceof \PhpParser\Node\Scalar\String_) {
-                return 'string';
+                return [
+                    'definition' => 'scalar',
+                    'type' => 'string',
+                ];
             }
 
             if ($type instanceof \PhpParser\Node\Expr\ConstFetch) {
                 if (!empty($type->name)) {
                     if ($type->name->parts[0] === 'true' || $type->name->parts[0] === 'false') {
-                        return 'bool';
+                        return [
+                            'definition' => 'scalar',
+                            'type' => 'bool',
+                        ];
                     }
 
-                    return 'mixed';
+                    return [
+                        'definition' => 'scalar',
+                        'type' => 'mixed',
+                    ];
                 }
             }
 
@@ -1005,14 +1034,23 @@ class PHPApiParser
 
                 // Class identifier constant
                 if ($const === 'class') {
-                    return 'string';
+                    return [
+                        'definition' => 'scalar',
+                        'type' => 'string',
+                    ];
                 }
 
-                return 'mixed';
+                return [
+                    'definition' => 'scalar',
+                    'type' => 'mixed',
+                ];
             }
 
             if ($type instanceof \PhpParser\Node\Expr\UnaryMinus) {
-                return 'float';
+                return [
+                    'definition' => 'scalar',
+                    'type' => 'float',
+                ];
             }
 
             if (
@@ -1027,18 +1065,41 @@ class PHPApiParser
                         break;
                 }
 
-                return $type;
+                return [
+                    'definition' => 'scalar',
+                    'type' => $type,
+                ];
             }
 
-            return get_class($type);
+            return [
+                'definition' => 'reference',
+                'type' => [
+                    'name' => ltrim(get_class($type), '\\'),
+                    'class' => ltrim(get_class($type), '\\'),
+                    'linked' => array_key_exists(ltrim(get_class($type), '\\'), $this->classes),
+                ],
+            ];
         } elseif (is_string($type)) {
             if (array_key_exists(ltrim($type, '\\'), $this->classes)) {
                 return [
-                    'name' => $this->classes[ltrim($type, '\\')]['name'],
-                    'class' => $this->classes[ltrim($type, '\\')]['class'],
+                    'definition' => 'reference',
+                    'type' => [
+                        'name' => $this->classes[ltrim($type, '\\')]['name'],
+                        'class' => $this->classes[ltrim($type, '\\')]['class'],
+                        'linked' => true,
+                    ],
                 ];
             }
             if (strpos('\\', $type)) {
+                return [
+                    'definition' => 'reference',
+                    'type' => [
+                        'name' => $type,
+                        'class' => $type,
+                        'linked' => array_key_exists(ltrim($type, '\\'), $this->classes),
+                    ],
+                ];
+
                 return $type;
             }
         } else {
@@ -1051,7 +1112,10 @@ class PHPApiParser
                 break;
         }
 
-        return $type;
+        return [
+            'definition' => 'scalar',
+            'type' => $type,
+        ];
     }
 
     /**
@@ -1348,7 +1412,19 @@ class PHPApiParser
         // Inherited method docs will overwrite the returns and params if any of them are missing a summary or are
         // using the "mixed" type.
         if ($type === 'method') {
-            if ($data['returns']['type'] === 'mixed' && ($data['docs']['returns']['type'] ?? 'mixed') !== 'mixed') {
+            if (
+                (
+                    $data['returns']['type']['definition'] === 'single'
+                    && $data['returns']['type']['type'] === 'mixed'
+                )
+                && (
+                    isset($data['docs']['returns']['type'])
+                    && (
+                        $data['docs']['returns']['type']['definition'] !== 'single'
+                        || $data['docs']['returns']['type']['type'] !== 'mixed'
+                    )
+                )
+            ) {
                 $data['returns']['type'] = $data['docs']['returns']['type'];
             }
             if (empty($data['returns']['summary']) && !empty($data['docs']['return']['summary'])) {
@@ -1356,7 +1432,19 @@ class PHPApiParser
             }
 
             foreach ($data['params'] as &$param) {
-                if ($param['type'] === 'mixed' && ($data['docs']['params'][$param['name']]['type'] ?? 'mixed') !== 'mixed') {
+                if (
+                    (
+                        $param['type']['definition'] === 'single'
+                        && $param['type']['type'] === 'mixed'
+                    )
+                    && (
+                        isset($param['docs']['params'][$param['name']]['type'])
+                        && (
+                            $param['docs']['params'][$param['name']]['type']['definition'] !== 'single'
+                            || $param['docs']['params'][$param['name']]['type']['type'] !== 'mixed'
+                        )
+                    )
+                ) {
                     $param['type'] = $data['docs']['params'][$param['name']]['type'];
                 }
                 if (empty($param['summary']) && !empty($data['docs']['params'][$param['name']]['summary'])) {
