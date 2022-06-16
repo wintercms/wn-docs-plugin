@@ -59,14 +59,17 @@ class DocsPage extends ComponentBase
 
         if (empty($path)) {
             $page = $pageList->getRootPage();
-            $page->load();
+            return redirect()->to($this->controller->pageUrl($this->page->baseFileName, [
+                'slug' => $page->getPath(),
+            ]));
         } else {
             $page = $pageList->getPage($path);
             if (is_null($page)) {
-                // 404
-                return;
+                return response(404);
             }
-            $page->load();
+            $page->load($this->controller->pageUrl($this->page->baseFileName, [
+                'slug' => ''
+            ]));
         }
         $pageList->setActivePage($page);
 
@@ -98,14 +101,18 @@ class DocsPage extends ComponentBase
 
         if (empty($path)) {
             $page = $pageList->getRootPage();
-            $page->load();
+            return redirect()->to($this->controller->pageUrl($this->page->baseFileName, [
+                'slug' => $page->getPath(),
+            ]));
         } else {
             $page = $pageList->getPage($path);
             if (is_null($page)) {
                 Flash::error('The page you have requested does not exist');
                 return;
             }
-            $page->load();
+            $page->load($this->controller->pageUrl($this->page->baseFileName, [
+                'slug' => ''
+            ]));
         }
         $pageList->setActivePage($page);
 

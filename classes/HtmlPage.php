@@ -55,7 +55,7 @@ class HtmlPage implements Page
      *
      * @return void
      */
-    public function load()
+    public function load(string $pageUrl = '')
     {
         $content = $this->docs->getProcessedFile($this->path . '.htm');
         if (is_null($content)) {
@@ -89,6 +89,19 @@ class HtmlPage implements Page
                     $this->navigation = $this->processNav($body->firstChild);
                 }
                 $body->removeChild($body->firstChild);
+            }
+
+            // Look for links with "page:" prefixes and replace them with a proper page link
+            $links = $dom->getElementsByTagName('a');
+
+            if ($links->length >= 1) {
+                foreach ($links as $link) {
+                    $href = $link->getAttributeNode('href');
+                    if (str_starts_with($href->value, 'path:')) {
+                        $pagePath = str_after($href->value, 'path:');
+                        $href->value = $pageUrl . '/' . $pagePath;
+                    }
+                }
             }
 
             $this->content = utf8_decode($dom->saveHTML($body));
