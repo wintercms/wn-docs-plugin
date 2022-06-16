@@ -43,6 +43,11 @@ class MarkdownPageList extends BasePageList
     public function getPage(string $path): ?Page
     {
         $page = parent::getPage($path);
+
+        if (is_null($page)) {
+            return null;
+        }
+
         $page->load();
 
         return $page;
