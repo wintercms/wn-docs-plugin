@@ -8,6 +8,7 @@ use phpDocumentor\Reflection\DocBlockFactory;
 use phpDocumentor\Reflection\Type;
 use phpDocumentor\Reflection\Types\Compound;
 use phpDocumentor\Reflection\Types\Object_;
+use phpDocumentor\Reflection\Types\Void_;
 use PhpParser\ConstExprEvaluationException;
 use PhpParser\ConstExprEvaluator;
 use PhpParser\Error;
@@ -103,22 +104,6 @@ class PHPApiParser
                 continue;
             }
 
-            // Find namespace
-            $namespace = $nodeFinder->findFirstInstanceOf($parsed, \PhpParser\Node\Stmt\Namespace_::class);
-            if (is_null($namespace)) {
-                $namespace = '__GLOBAL__';
-            } else {
-                $namespace = (string) $namespace->name;
-            }
-            if (!in_array($namespace, $this->namespaces)) {
-                $this->namespaces[] = $namespace;
-            }
-
-            // Find use cases
-            $singleUses = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\Use_::class);
-            $groupedUses = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\GroupUse::class);
-            $uses = $this->parseUseCases($singleUses, $groupedUses);
-
             // Ensure that we are dealing with a single class, trait or interface
             $objects = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\Class_::class);
             $objects = array_merge($objects, $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\Trait_::class));
@@ -137,6 +122,22 @@ class PHPApiParser
                 ];
                 continue;
             }
+
+            // Find namespace
+            $namespace = $nodeFinder->findFirstInstanceOf($parsed, \PhpParser\Node\Stmt\Namespace_::class);
+            if (is_null($namespace)) {
+                $namespace = '__GLOBAL__';
+            } else {
+                $namespace = (string) $namespace->name;
+            }
+            if (!in_array($namespace, $this->namespaces)) {
+                $this->namespaces[] = $namespace;
+            }
+
+            // Find use cases
+            $singleUses = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\Use_::class);
+            $groupedUses = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\GroupUse::class);
+            $uses = $this->parseUseCases($singleUses, $groupedUses);
 
             // Parse the objects
             switch (get_class($objects[0])) {
@@ -295,9 +296,13 @@ class PHPApiParser
                 $name = (string) $use->uses[0]->name;
                 $fqClass = $this->resolveName($use->uses[0]->name, '', []);
 
-                $alias = (!is_null($use->uses[0]->alias))
-                    ? $use->uses[0]->alias->name
-                    : substr($fqClass, strrpos($fqClass, '\\') + 1);
+                if (!is_null($use->uses[0]->alias)) {
+                    $alias = $use->uses[0]->alias->name;
+                } elseif (str_contains($fqClass, '\\')) {
+                    $alias = substr($fqClass, strrpos($fqClass, '\\') + 1);
+                } else {
+                    $alias = $fqClass;
+                }
 
                 $uses[$alias] = [
                     'class' => $fqClass,
@@ -316,9 +321,13 @@ class PHPApiParser
                     $name = (string) $use->name;
                     $fqClass = $this->resolveName($use->name, $prefix, []);
 
-                    $alias = (!is_null($use->alias))
-                        ? $use->alias->name
-                        : substr($fqClass, strrpos($fqClass, '\\') + 1);
+                    if (!is_null($use->alias)) {
+                        $alias = $use->alias->name;
+                    } elseif (str_contains($fqClass, '\\')) {
+                        $alias = substr($fqClass, strrpos($fqClass, '\\') + 1);
+                    } else {
+                        $alias = $fqClass;
+                    }
 
                     $uses[$alias] = [
                         'class' => $fqClass,
@@ -364,6 +373,7 @@ class PHPApiParser
             'class' => $fqClass,
             'extends' => $extends,
             'implements' => $implements,
+            'uses' => $uses,
             'traits' => $this->parseClassTraits($class, $namespace, $uses),
             'docs' => $docs,
             'final' => $class->isFinal(),
@@ -398,6 +408,7 @@ class PHPApiParser
             'namespace' => $namespace,
             'type' => 'interface',
             'class' => $fqClass,
+            'uses' => $uses,
             'docs' => $docs,
             'constants' => $this->parseClassConstants($class, $namespace, $uses),
             'methods' => $this->parseClassMethods($class, $namespace, $uses),
@@ -428,6 +439,7 @@ class PHPApiParser
             'namespace' => $namespace,
             'type' => 'trait',
             'class' => $fqClass,
+            'uses' => $uses,
             'docs' => $docs,
             'constants' => $this->parseClassConstants($class, $namespace, $uses),
             'properties' => $this->parseClassProperties($class, $namespace, $uses),
@@ -446,29 +458,18 @@ class PHPApiParser
     protected function parseClassConstants(\PhpParser\Node\Stmt\ClassLike $class, string $namespace, array $uses = [])
     {
         return array_map(function (\PhpParser\Node\Stmt\ClassConst $constant) use ($namespace, $uses) {
-            $evaluator = new ConstExprEvaluator();
-            $value = $constant->consts[0]->value;
-
-            try {
-                $value = $evaluator->evaluateSilently($value);
-            } catch (ConstExprEvaluationException $e) {
-                return [
-                    'name' => (string) $constant->consts[0]->name,
-                    'type' => [
-                        'definition' => 'scalar',
-                        'type' => 'mixed',
-                    ],
-                    'value' => 'unknown',
-                    'docs' => $this->parseDocBlock($constant->getDocComment(), $namespace, $uses),
-                    'line' => $constant->getStartLine(),
-                    'inherited' => false,
-                ];
-            }
+            $value = $this->normaliseValue($constant->consts[0]->value);
 
             return [
                 'name' => (string) $constant->consts[0]->name,
-                'type' => $this->normaliseType($value),
-                'value' => (string) json_encode($value),
+                'type' => ($value instanceof Void_) ? [
+                    'definition' => 'scalar',
+                    'type' => 'mixed',
+                ] : [
+                    'definition' => 'scalar',
+                    'type' => gettype($value),
+                ],
+                'value' => ($value instanceof Void_) ? null : ((string) json_encode($value ?? null)),
                 'docs' => $this->parseDocBlock($constant->getDocComment(), $namespace, $uses),
                 'line' => $constant->getStartLine(),
                 'inherited' => false,
@@ -545,10 +546,16 @@ class PHPApiParser
         return array_map(function (Param $param) use ($namespace, $uses, $docs) {
             $type = $this->getParamType($param, $namespace, $uses, $docs);
 
+            $defaultValue = new Void_;
+            if (isset($param->default)) {
+                $defaultValue = $this->normaliseValue($param->default);
+            }
+
             return [
                 'name' => (string) $param->var->name,
                 'type' => $type['type'],
                 'summary' => $type['summary'],
+                'default' => ($defaultValue instanceof Void_) ? null : json_encode($defaultValue),
             ];
         }, $method->getParams());
     }
@@ -738,19 +745,68 @@ class PHPApiParser
 
             foreach ($type as $item) {
                 if ($item instanceof Object_ && !is_null($item->getFqsen())) {
-                    $types[] = $this->resolveName($item->getFqsen()->getName(), $namespace, $uses);
+                    $resolved = ltrim((string) $item->getFqsen(), '\\');
+                    $types[] = [
+                        'definition' => 'reference',
+                        'type' => [
+                            'name' => $resolved,
+                            'class' => $resolved,
+                            'linked' => false,
+                        ],
+                    ];
                 } else {
-                    $types[] = $this->resolveName((string) $item, $namespace, $uses);
+                    $resolved = $this->resolveName((string) $item, $namespace, $uses);
+                    if ($this->isScalar($resolved)) {
+                        $types[] = [
+                            'definition' => 'scalar',
+                            'type' => $resolved,
+                        ];
+                    } else {
+                        $types[] = [
+                            'definition' => 'reference',
+                            'type' => [
+                                'name' => $resolved,
+                                'class' => $resolved,
+                                'linked' => false,
+                            ],
+                        ];
+                    }
                 }
             }
 
-            return $this->normaliseType($types);
+            return [
+                'definition' => 'union',
+                'types' => $types,
+            ];
         }
 
         if ($type instanceof Object_ && !is_null($type->getFqsen())) {
-            return $this->normaliseType($this->resolveName($type->getFqsen()->getName(), $namespace, $uses));
+            $resolved = ltrim((string) $type->getFqsen(), '\\');
+            return [
+                'definition' => 'reference',
+                'type' => [
+                    'name' => $resolved,
+                    'class' => $resolved,
+                    'linked' => false,
+                ],
+            ];
         } else {
-            return $this->normaliseType($this->resolveName((string) $type, $namespace, $uses));
+            $resolved = $this->resolveName((string) $type, $namespace, $uses);
+            if ($this->isScalar($resolved)) {
+                return [
+                    'definition' => 'scalar',
+                    'type' => $resolved,
+                ];
+            } else {
+                return [
+                    'definition' => 'reference',
+                    'type' => [
+                        'name' => $resolved,
+                        'class' => $resolved,
+                        'linked' => false,
+                    ],
+                ];
+            }
         }
     }
 
@@ -984,10 +1040,15 @@ class PHPApiParser
     /**
      * Normalise type names.
      *
-     * @param mixed $type
-     * @return string
+     * @return array Returns an array that may contain the following:
+     *   - `definition` - either `union` for a union type, `reference` for a class reference and `scalar` for a scalar
+     *        type.
+     *   - `types`: If a union type, this will be an array of single types using this same structure.
+     *   - `type`: The details of the type. Either a string for a scalar type, or an array with the following for a
+     *        reference: `name` for the short reference name, `class` for the full reference name and `linked`, whether
+     *        this reference can be linked or not
      */
-    protected function normaliseType($type)
+    protected function normaliseType($type): array
     {
         if (is_array($type) && Arr::isList($type)) {
             return [
@@ -1013,90 +1074,27 @@ class PHPApiParser
                 ];
             }
 
-            if ($type instanceof \PhpParser\Node\Expr\ConstFetch) {
-                if (!empty($type->name)) {
-                    if ($type->name->parts[0] === 'true' || $type->name->parts[0] === 'false') {
-                        return [
-                            'definition' => 'scalar',
-                            'type' => 'bool',
-                        ];
-                    }
+            $value = $this->normaliseValue($type);
 
-                    return [
-                        'definition' => 'scalar',
-                        'type' => 'mixed',
-                    ];
-                }
-            }
-
-            if ($type instanceof \PhpParser\Node\Expr\ClassConstFetch) {
-                $const = $type->name;
-
-                // Class identifier constant
-                if ($const === 'class') {
-                    return [
-                        'definition' => 'scalar',
-                        'type' => 'string',
-                    ];
-                }
-
+            if ($value instanceof Void_ || $value === null) {
                 return [
                     'definition' => 'scalar',
                     'type' => 'mixed',
                 ];
             }
 
-            if ($type instanceof \PhpParser\Node\Expr\UnaryMinus) {
-                return [
-                    'definition' => 'scalar',
-                    'type' => 'float',
-                ];
-            }
-
-            if (
-                $type instanceof \PhpParser\Node\Scalar\DNumber
-                || $type instanceof \PhpParser\Node\Scalar\LNumber
-            ) {
-                $type = gettype($type->value);
-
-                switch ($type) {
-                    case 'int':
-                        $type = 'integer';
-                        break;
-                }
-
-                return [
-                    'definition' => 'scalar',
-                    'type' => $type,
-                ];
-            }
-
             return [
-                'definition' => 'reference',
-                'type' => [
-                    'name' => ltrim(get_class($type), '\\'),
-                    'class' => ltrim(get_class($type), '\\'),
-                    'linked' => array_key_exists(ltrim(get_class($type), '\\'), $this->classes),
-                ],
+                'definition' => 'scalar',
+                'type' => gettype($value),
             ];
         } elseif (is_string($type)) {
-            if (array_key_exists(ltrim($type, '\\'), $this->classes)) {
-                return [
-                    'definition' => 'reference',
-                    'type' => [
-                        'name' => $this->classes[ltrim($type, '\\')]['name'],
-                        'class' => $this->classes[ltrim($type, '\\')]['class'],
-                        'linked' => true,
-                    ],
-                ];
-            }
             if (strpos('\\', $type)) {
                 return [
                     'definition' => 'reference',
                     'type' => [
                         'name' => $type,
                         'class' => $type,
-                        'linked' => array_key_exists(ltrim($type, '\\'), $this->classes),
+                        'linked' => false,
                     ],
                 ];
 
@@ -1116,6 +1114,35 @@ class PHPApiParser
             'definition' => 'scalar',
             'type' => $type,
         ];
+    }
+
+    /**
+     * Normalises a value.
+     *
+     * @param mixed $value
+     * @return mixed Returns a value if it can be normalised, otherwise this will return a "Void"
+     *   instance to represent an absence of a value (including `null`)
+     */
+    protected function normaliseValue($value): mixed
+    {
+        $evaluator = new ConstExprEvaluator(function ($value) {
+            if ($value instanceof \PhpParser\Node\Expr\ClassConstFetch) {
+                $const = $value->name;
+
+                // Class identifier constant
+                if ($const === 'class') {
+                    return $value->name->toString();
+                }
+
+                return new Void_;
+            }
+        });
+
+        try {
+            return $evaluator->evaluateSilently($value);
+        } catch (ConstExprEvaluationException $e) {
+            return new Void_;
+        }
     }
 
     /**
@@ -1215,6 +1242,15 @@ class PHPApiParser
             foreach ($ancestor['traits'] as $trait) {
                 if (!in_array($trait, $child['traits'])) {
                     $child['traits'][] = $trait;
+                }
+            }
+        }
+
+        // Interfaces
+        if ($ancestor['type'] === 'class' && count($ancestor['implements'])) {
+            foreach ($ancestor['implements'] as $interface) {
+                if (!in_array($interface, $child['implements'])) {
+                    $child['implements'][] = $interface;
                 }
             }
         }
@@ -1456,8 +1492,7 @@ class PHPApiParser
 
     protected function secondPassInheritedDocs()
     {
-        foreach ($this->classes as $name => &$class)
-        {
+        foreach ($this->classes as $name => &$class) {
             // No inheritance - continue
             if (!isset($class['inherited'])) {
                 continue;
@@ -1518,6 +1553,88 @@ class PHPApiParser
     protected function processContext()
     {
         foreach ($this->classes as $name => &$class) {
+            // Link class references in properties
+            if (!empty($class['properties'])) {
+                foreach ($class['properties'] as &$property) {
+                    if ($property['type']['definition'] === 'union') {
+                        foreach ($property['type']['types'] as &$type) {
+                            if ($type['definition'] === 'reference') {
+                                if (!empty($class['uses']) && isset($class['uses'][$type['type']['class']])) {
+                                    $type['type']['class'] = $class['uses'][$type['type']['class']]['class'];
+                                }
+                                if (isset($this->classes[$type['type']['class']])) {
+                                    $type['type']['linked'] = true;
+                                    continue;
+                                }
+                            }
+                        }
+                    } elseif ($property['type']['definition'] === 'reference') {
+                        if (!empty($class['uses']) && isset($class['uses'][$property['type']['type']['class']])) {
+                            $property['type']['type']['class'] = $class['uses'][$property['type']['type']['class']]['class'];
+                        }
+                        if (isset($this->classes[$property['type']['type']['class']])) {
+                            $property['type']['type']['linked'] = true;
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            // Link class references in method param and return types
+            if (!empty($class['methods'])) {
+                foreach ($class['methods'] as &$method) {
+                    if (!empty($method['params'])) {
+                        foreach ($method['params'] as &$param) {
+                            if ($param['type']['definition'] === 'union') {
+                                foreach ($param['type']['types'] as &$type) {
+                                    if ($type['definition'] === 'reference') {
+                                        if (!empty($class['uses']) && isset($class['uses'][$type['type']['class']])) {
+                                            $type['type']['class'] = $class['uses'][$type['type']['class']]['class'];
+                                        }
+                                        if (isset($this->classes[$type['type']['class']])) {
+                                            $type['type']['linked'] = true;
+                                            continue;
+                                        }
+                                    }
+                                }
+                            } elseif ($param['type']['definition'] === 'reference') {
+                                if (!empty($class['uses']) && isset($class['uses'][$param['type']['type']['class']])) {
+                                    $param['type']['type']['class'] = $class['uses'][$param['type']['type']['class']]['class'];
+                                }
+                                if (isset($this->classes[$param['type']['type']['class']])) {
+                                    $param['type']['type']['linked'] = true;
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+
+                    if (!empty($method['returns']['type'])) {
+                        if ($method['returns']['type']['definition'] === 'union') {
+                            foreach ($method['returns']['type']['types'] as &$type) {
+                                if ($type['definition'] === 'reference') {
+                                    if (!empty($class['uses']) && isset($class['uses'][$type['type']['class']])) {
+                                        $type['type']['class'] = $class['uses'][$type['type']['class']]['class'];
+                                    }
+                                    if (isset($this->classes[$type['type']['class']])) {
+                                        $type['type']['linked'] = true;
+                                        continue;
+                                    }
+                                }
+                            }
+                        } elseif ($method['returns']['type']['definition'] === 'reference') {
+                            if (!empty($class['uses']) && isset($class['uses'][$method['returns']['type']['type']['class']])) {
+                                $method['returns']['type']['type']['class'] = $class['uses'][$method['returns']['type']['type']['class']]['class'];
+                            }
+                            if (isset($this->classes[$method['returns']['type']['type']['class']])) {
+                                $method['returns']['type']['type']['linked'] = true;
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+
             if (isset($class['traits']) && count($class['traits'])) {
                 foreach ($class['traits'] as &$trait) {
                     if (isset($this->classes[$trait])) {
