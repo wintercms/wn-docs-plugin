@@ -488,6 +488,11 @@ class PHPApiParser
     protected function parseClassProperties(\PhpParser\Node\Stmt\ClassLike $class, string $namespace, array $uses = [])
     {
         return array_map(function (\PhpParser\Node\Stmt\Property $property) use ($namespace, $uses) {
+            $defaultValue = new Void_;
+            if (isset($property->props[0]->default)) {
+                $defaultValue = $this->normaliseValue($property->props[0]->default);
+            }
+
             return [
                 'name' => (string) $property->props[0]->name,
                 'static' => $property->isStatic(),
@@ -495,6 +500,7 @@ class PHPApiParser
                 'visibility' => ($property->isPublic())
                     ? 'public'
                     : (($property->isProtected()) ? 'protected' : 'private'),
+                'default' => ($defaultValue instanceof Void_) ? null : json_encode($defaultValue),
                 'docs' => $this->parseDocBlock($property->getDocComment(), $namespace, $uses),
                 'line' => $property->getStartLine(),
                 'inherited' => false,
