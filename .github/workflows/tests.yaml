@@ -11,10 +11,10 @@ jobs:
     name: ${{ matrix.operatingSystem }} / PHP ${{ matrix.phpVersion }}
     runs-on: ${{ matrix.operatingSystem }}
     strategy:
-      max-parallel: 8
+      max-parallel: 4
       matrix:
         operatingSystem: [ubuntu-latest, windows-latest]
-        phpVersion: ['7.3', '7.4', '8.0']
+        phpVersion: ['8.0', '8.1']
       fail-fast: false
     env:
       extensions: curl, fileinfo, gd, mbstring, openssl, pdo, pdo_sqlite, sqlite3, xml, zip
