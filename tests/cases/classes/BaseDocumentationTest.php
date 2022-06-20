@@ -22,6 +22,8 @@ class BaseDocumentationTest extends TestCase
             [
                 'Winter.Docs.Test',
                 [
+                    'name' => 'Winter Docs Test',
+                    'type' => 'user',
                     'source' => 'remote',
                     'url' => 'https://github.com/wintercms/docs/archive/refs/heads/main.zip',
                     'zipFolder' => 'docs-main',
@@ -48,6 +50,8 @@ class BaseDocumentationTest extends TestCase
             [
                 'Winter.Docs.Test',
                 [
+                    'name' => 'Winter Docs Test',
+                    'type' => 'user',
                     'source' => 'remote',
                     'url' => 'https://wintercms.com/docs/missing/docs.zip',
                     'zipFolder' => 'docs-main',
@@ -69,6 +73,8 @@ class BaseDocumentationTest extends TestCase
             [
                 'Winter.Docs.Test',
                 [
+                    'name' => 'Winter Docs Test',
+                    'type' => 'user',
                     'source' => 'remote',
                     'url' => 'https://github.com/wintercms/docs/archive/refs/heads/main.zip',
                     'zipFolder' => 'docs-main',
@@ -94,6 +100,8 @@ class BaseDocumentationTest extends TestCase
             [
                 'Winter.Docs.Test',
                 [
+                    'name' => 'Winter Docs Test',
+                    'type' => 'user',
                     'source' => 'remote',
                     'url' => 'https://github.com/wintercms/docs/archive/refs/heads/main.zip',
                     'zipFolder' => 'docs-main',
