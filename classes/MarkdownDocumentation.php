@@ -380,6 +380,7 @@ class MarkdownDocumentation extends BaseDocumentation
                     $sectionNav['children'][] = [
                         'title' => $pageTitle,
                         'path' => $path,
+                        'external' => $this->isExternalPath($path),
                     ];
                 }
             }
@@ -401,9 +402,21 @@ class MarkdownDocumentation extends BaseDocumentation
             $navigation[] = [
                 'title' => $pageTitle,
                 'path' => $path,
+                'external' => $this->isExternalPath($path),
             ];
         }
 
         return $navigation;
+    }
+
+    /**
+     * Determines if the given path looks to be an external link.
+     */
+    protected function isExternalPath(string $path): bool
+    {
+        return str_starts_with($path, 'http://')
+            || str_starts_with($path, 'https://')
+            || str_starts_with($path, '/')
+            || str_starts_with($path, '../');
     }
 }

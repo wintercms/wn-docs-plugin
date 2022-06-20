@@ -35,6 +35,9 @@ interface PageList
      * a `title` attribute, and either a `path` (for a page), or `children` (for a section with
      * sub-navigation items). If a page is active, it will contain an `active` key set to true. For
      * sections with an active page within, they will contain a `childActive` key set to true.
+     *
+     * Pages may also have an `external` boolean which indicates that the page link is to an
+     * external page outside of the doc heirarchy. This will be `true` if the page is external.
      */
     public function getNavigation(): array;
 
