@@ -97,7 +97,7 @@ class HtmlPage implements Page
             if ($links->length >= 1) {
                 foreach ($links as $link) {
                     $href = $link->getAttributeNode('href');
-                    if (str_starts_with($href->value, 'path:')) {
+                    if ($href !== false && str_starts_with($href->value, 'path:')) {
                         $pagePath = str_after($href->value, 'path:');
                         $href->value = $pageUrl . '/' . $pagePath;
                     }
