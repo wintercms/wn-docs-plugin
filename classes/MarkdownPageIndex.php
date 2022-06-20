@@ -2,17 +2,41 @@
 
 namespace Winter\Docs\Classes;
 
+use Winter\Docs\Classes\Contracts\PageList;
 use Winter\Storm\Database\Model;
 use Winter\Storm\Database\Traits\ArraySource;
+use Winter\Storm\Database\Traits\Purgeable;
 use Winter\Storm\Support\Str;
 
 class MarkdownPageIndex extends Model
 {
     use ArraySource;
+    use Purgeable;
 
     public $implement = [
-        '@Winter.Search.Behaviors.Searchable'
+        '@Winter.Search.Behaviors.Searchable',
     ];
+
+    /**
+     * The primary key for the model.
+     *
+     * @var string
+     */
+    protected $primaryKey = 'slug';
+
+    /**
+     * The "type" of the primary key ID.
+     *
+     * @var string
+     */
+    protected $keyType = 'string';
+
+    /**
+     * Indicates if the IDs are auto-incrementing.
+     *
+     * @var bool
+     */
+    public $incrementing = false;
 
     public $fillable = [
         'slug',
@@ -29,39 +53,71 @@ class MarkdownPageIndex extends Model
     ];
 
     public $searchable = [
+        'title',
         'slug',
         'path',
-        'title',
         'content',
     ];
 
-    public function __construct(array $attributes = [])
-    {
-        print_r(array_keys($attributes));
-        $this->pageList = $attributes['pageList'];
-        unset($attributes['pageList']);
+    public $purgeable = [
+        'pageList'
+    ];
 
-        parent::__construct($attributes);
+    /**
+     * Page list instance.
+     */
+    protected static ?PageList $pageList = null;
+
+    /**
+     * Sets the page list instance.
+     */
+    public static function setPageList(?PageList $pageList): void
+    {
+        static::$pageList = $pageList;
     }
 
     public function index()
     {
-        foreach ($this->pageList->getPages() as $page) {
+        foreach (static::$pageList->getPages() as $page) {
             $page->load();
 
             $index = new static([
                 'pageList' => $this->pageList,
-                'slug' => Str::slug($page->getPath()),
+                'slug' => Str::slug(str_replace('/', '-', $page->getPath())),
                 'path' => $page->getPath(),
                 'title' => $page->getTitle(),
-                'content' => $page->getContent(),
+                'content' => strip_tags($page->getContent()),
             ]);
             $index->save();
         }
     }
 
+    /**
+     * Sets the name of the search index. This is based off the docs name.
+     *
+     * @return void
+     */
     public function searchableAs()
     {
-        return Str::slug($this->pageList->getDocsIdentifier());
+        return Str::slug(str_replace('.', '-', 'docs-' . static::$pageList->getDocsIdentifier()));
+    }
+
+    /**
+     * Make search index searchable by the slug.
+     *
+     * @return string
+     */
+    public function getSearchKey()
+    {
+        return 'slug';
+    }
+
+    /**
+     * Gets the path where the array database will be stored.
+     */
+    protected function arraySourceGetDbPath(): string
+    {
+        $class = str_replace('\\', '', static::class);
+        return $this->arraySourceGetDbDir() . '/docs-' . Str::slug(str_replace('.', '-', static::$pageList->getDocsIdentifier())) . '.sqlite';
     }
 }

@@ -24,6 +24,8 @@ class MarkdownPageList extends BasePageList
      */
     public function __construct(MarkdownDocumentation $docs, string $pageMap, string $toc)
     {
+        $this->docs = $docs;
+
         foreach (json_decode($pageMap, true) as $path => $page) {
             $this->pages[$path] = new HtmlPage($docs, $path, $page['title']);
         }
@@ -58,9 +60,11 @@ class MarkdownPageList extends BasePageList
      */
     public function index(): void
     {
-        $index = new MarkdownPageIndex([
-            'pageList' => $this,
-        ]);
+        MarkdownPageIndex::setPageList($this);
+
+        $index = new MarkdownPageIndex;
         $index->index();
+
+        MarkdownPageIndex::setPageList(null);
     }
 }

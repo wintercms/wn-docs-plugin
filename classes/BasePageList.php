@@ -2,6 +2,7 @@
 
 namespace Winter\Docs\Classes;
 
+use System\Classes\PluginManager;
 use Winter\Docs\Classes\Contracts\Page;
 use Winter\Docs\Classes\Contracts\PageList;
 
@@ -98,14 +99,6 @@ abstract class BasePageList implements PageList
     /**
      * @inheritDoc
      */
-    public function search(string $query): array
-    {
-        return [];
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getRootPage(): Page
     {
         return $this->rootPage;
@@ -138,6 +131,23 @@ abstract class BasePageList implements PageList
     /**
      * @inheritDoc
      */
+    public function search(string $query): array
+    {
+        return [];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isSearchable(): bool
+    {
+        $pluginManager = PluginManager::instance();
+        return $pluginManager->exists('Winter.Search');
+    }
+
+    /**
+     * @inheritDoc
+     */
     abstract public function index(): void;
 
     /**
@@ -145,6 +155,6 @@ abstract class BasePageList implements PageList
      */
     public function getDocsIdentifier(): string
     {
-        return $this->docs->identifier;
+        return $this->docs->getIdentifier();
     }
 }

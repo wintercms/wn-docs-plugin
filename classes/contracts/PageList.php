@@ -78,6 +78,13 @@ interface PageList
     public function search(string $query): array;
 
     /**
+     * Determines if this page list is searchable.
+     *
+     * @return bool
+     */
+    public function isSearchable(): bool;
+
+    /**
      * Creates a search index for the available pages in the documentation.
      */
     public function index(): void;
