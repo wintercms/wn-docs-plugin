@@ -69,11 +69,24 @@ class MarkdownPageIndex extends Model
     protected static ?PageList $pageList = null;
 
     /**
+     * Determines if the index needs to be updated.
+     */
+    protected static bool $needsUpdate = false;
+
+    /**
      * Sets the page list instance.
      */
     public static function setPageList(?PageList $pageList): void
     {
         static::$pageList = $pageList;
+    }
+
+    /**
+     * Tells the Array Source trait that the index needs updating.
+     */
+    public static function needsUpdate()
+    {
+        static::$needsUpdate = true;
     }
 
     public function index()
@@ -110,6 +123,32 @@ class MarkdownPageIndex extends Model
     public function getSearchKey()
     {
         return 'slug';
+    }
+
+    /**
+     * Determines if the stored array DB should be updated.
+     */
+    protected function arraySourceDbNeedsUpdate(): bool
+    {
+        if (static::$needsUpdate) {
+            return true;
+        }
+
+        if (!$this->arraySourceCanStoreDb()) {
+            return true;
+        }
+
+        if (!File::exists($this->arraySourceGetDbPath())) {
+            return true;
+        }
+
+        $modelFile = (new ReflectionClass(static::class))->getFileName();
+
+        if (File::lastModified($this->arraySourceGetDbPath()) < File::lastModified($modelFile)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

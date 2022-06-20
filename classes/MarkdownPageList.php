@@ -61,6 +61,7 @@ class MarkdownPageList extends BasePageList
     public function index(): void
     {
         MarkdownPageIndex::setPageList($this);
+        MarkdownPageIndex::needsUpdate();
 
         $index = new MarkdownPageIndex;
         $index->index();
