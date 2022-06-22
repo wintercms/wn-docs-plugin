@@ -38,8 +38,13 @@ interface Page
      *
      * Front matter is metadata that's defined in the source documentation files. It's useful for storing
      * custom data such as meta tag content, a custom title for the page, and so on.
-     *
-     * @return array
      */
     public function getFrontMatter(): array;
+
+    /**
+     * Gets the URL for editing the source of this page.
+     *
+     * If no source URL is available, this will return `null`.
+     */
+    public function getEditUrl(): ?string;
 }

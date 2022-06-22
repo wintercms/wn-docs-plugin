@@ -11,6 +11,7 @@ use RecursiveIteratorIterator;
 use RecursiveDirectoryIterator;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Winter\Docs\Classes\Contracts\Documentation;
+use Winter\Docs\Classes\Contracts\Page;
 use Winter\Docs\Classes\Contracts\PageList;
 use Winter\Storm\Filesystem\Zip;
 
@@ -45,6 +46,16 @@ abstract class BaseDocumentation implements Documentation
      * The URL where the compiled documentation can be found.
      */
     protected ?string $url = null;
+
+    /**
+     * The URL to the source repository for this documentation.
+     */
+    protected ?string $repositoryUrl = null;
+
+    /**
+     * The URL template for editing a page in the source repository.
+     */
+    protected ?string $repositoryEditUrl = null;
 
     /**
      * The subfolder within the ZIP file in which this documentation is stored.
@@ -90,6 +101,8 @@ abstract class BaseDocumentation implements Documentation
         $this->url = $config['url'] ?? null;
         $this->zipFolder = $config['zipFolder'] ?? '';
         $this->ignoredPaths = $config['ignorePaths'] ?? [];
+        $this->repositoryUrl = $config['repository']['url'] ?? null;
+        $this->repositoryEditUrl = $config['repository']['editUrl'] ?? null;
     }
 
     /**
@@ -324,6 +337,32 @@ abstract class BaseDocumentation implements Documentation
      * @inheritDoc
      */
     abstract public function getPageList(): PageList;
+
+    /**
+     * @inheritDoc
+     */
+    public function getRepositoryUrl(): ?string
+    {
+        return $this->repositoryUrl;
+    }
+
+    /**
+     * Returns a URL to edit the source of the given page.
+     *
+     * This requires the repository edit URL to be provided in the documentation config, otherwise,
+     * `null` will be returned.
+     *
+     * @param Page $page
+     * @return string|null
+     */
+    public function getRepositoryEditUrl(Page $page): ?string
+    {
+        if (is_null($this->repositoryEditUrl)) {
+            return null;
+        }
+
+        return sprintf($this->repositoryEditUrl, $page->getPath());
+    }
 
     /**
      * Checks if a remotely-sourced documentation ZIP file is available.

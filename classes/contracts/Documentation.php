@@ -46,7 +46,7 @@ interface Documentation
      */
     public function process(): void;
 
-        /**
+    /**
      * Provides a PageList instance for the documentation.
      *
      * A PageList provides a collated list of pages available for the documentation.
@@ -54,4 +54,11 @@ interface Documentation
      * In general, this function should be run after the documentation is processed.
      */
     public function getPageList(): PageList;
+
+    /**
+     * Gets the URL to the source repository for this documentation.
+     *
+     * If no source URL is provided, this will return `null`.
+     */
+    public function getRepositoryUrl(): ?string;
 }

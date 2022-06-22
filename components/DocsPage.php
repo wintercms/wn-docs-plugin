@@ -76,10 +76,12 @@ class DocsPage extends ComponentBase
         $this->page['docId'] = $docs->getIdentifier();
         $this->page['docTitle'] = $docs->getName();
         $this->page['docType'] = $docs->getType();
+        $this->page['sourceUrl'] = $docs->getRepositoryUrl();
+        $this->page['mainNav'] = $pageList->getNavigation();
         $this->page['title'] = $page->getTitle();
         $this->page['pagePath'] = $page->getPath();
         $this->page['content'] = $page->getContent();
-        $this->page['mainNav'] = $pageList->getNavigation();
+        $this->page['editUrl'] = $page->getEditUrl();
         $this->page['pageNav'] = $page->getNavigation();
         $this->page['frontMatter'] = $page->getFrontMatter();
     }
@@ -129,27 +131,33 @@ class DocsPage extends ComponentBase
                 'docId' => $docs->getIdentifier(),
                 'docName' => $docs->getName(),
                 'docType' => $docs->getType(),
+                'sourceUrl' => $docs->getRepositoryUrl(),
                 'title' => $page->getTitle(),
                 'pagePath' => $page->getPath(),
                 'frontMatter' => $page->getFrontMatter(),
+                'editUrl' => $page->getEditUrl(),
             ]),
             '#docs-content' => $this->renderPartial('@contents', [
                 'content' => $page->getContent(),
                 'docId' => $docs->getIdentifier(),
                 'docName' => $docs->getName(),
                 'docType' => $docs->getType(),
+                'sourceUrl' => $docs->getRepositoryUrl(),
                 'title' => $page->getTitle(),
                 'pagePath' => $page->getPath(),
                 'frontMatter' => $page->getFrontMatter(),
+                'editUrl' => $page->getEditUrl(),
             ]),
             '#docs-toc' => $this->renderPartial('@toc', [
                 'pageNav' => $page->getNavigation(),
                 'docId' => $docs->getIdentifier(),
                 'docName' => $docs->getName(),
                 'docType' => $docs->getType(),
+                'sourceUrl' => $docs->getRepositoryUrl(),
                 'title' => $page->getTitle(),
                 'pagePath' => $page->getPath(),
                 'frontMatter' => $page->getFrontMatter(),
+                'editUrl' => $page->getEditUrl(),
             ]),
         ];
     }

@@ -240,4 +240,12 @@ class HtmlPage implements Page
 
         return $this->frontMatter;
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function getEditUrl(): ?string
+    {
+        return $this->docs->getRepositoryEditUrl($this);
+    }
 }
