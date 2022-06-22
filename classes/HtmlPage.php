@@ -41,6 +41,16 @@ class HtmlPage implements Page
     protected bool $loaded = false;
 
     /**
+     * The table of contents for this page.
+     */
+    protected array $navigation = [];
+
+    /**
+     * The front matter for the page.
+     */
+    protected array $frontMatter = [];
+
+    /**
      * Constructor.
      */
     public function __construct(BaseDocumentation $docs, string $path, string $title)
@@ -80,6 +90,15 @@ class HtmlPage implements Page
                 throw new ApplicationException('Documentation file has no body content.');
             }
 
+            // Find front matter, if it's been provided
+            $frontMatterElement = $dom->getElementById('frontMatter');
+            if ($frontMatterElement !== null) {
+                $this->frontMatter = json_decode($frontMatterElement->textContent, true);
+                if (isset($this->frontMatter['title'])) {
+                    $this->title = $this->frontMatter['title'];
+                }
+            }
+
             // If there is a table of contents for the page, it will be a <ul>, it will be
             // the first element and it will have a class "table-of-contents".
             $firstChild = $body->firstChild->nodeName;
@@ -87,8 +106,8 @@ class HtmlPage implements Page
                 $class = $body->firstChild->attributes->getNamedItem('class')->value;
                 if (!is_null($class) && $class === 'table-of-contents') {
                     $this->navigation = $this->processNav($body->firstChild);
+                    $body->removeChild($body->firstChild);
                 }
-                $body->removeChild($body->firstChild);
             }
 
             // Look for links with "page:" prefixes and replace them with a proper page link
@@ -192,7 +211,7 @@ class HtmlPage implements Page
     public function getNavigation(): array
     {
         if (!$this->loaded) {
-            return $this->load();
+            $this->load();
         }
 
         return $this->navigation;
@@ -204,9 +223,21 @@ class HtmlPage implements Page
     public function getContent(): string
     {
         if (!$this->loaded) {
-            return $this->load();
+            $this->load();
         }
 
         return $this->content;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getFrontMatter(): array
+    {
+        if (!$this->loaded) {
+            $this->load();
+        }
+
+        return $this->frontMatter;
     }
 }

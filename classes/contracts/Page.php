@@ -32,4 +32,14 @@ interface Page
      * Gets the content of the page. This should generally be the rendered HTML.
      */
     public function getContent(): string;
+
+    /**
+     * Gets the front matter as an array.
+     *
+     * Front matter is metadata that's defined in the source documentation files. It's useful for storing
+     * custom data such as meta tag content, a custom title for the page, and so on.
+     *
+     * @return array
+     */
+    public function getFrontMatter(): array;
 }

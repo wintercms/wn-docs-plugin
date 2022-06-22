@@ -81,6 +81,7 @@ class DocsPage extends ComponentBase
         $this->page['content'] = $page->getContent();
         $this->page['mainNav'] = $pageList->getNavigation();
         $this->page['pageNav'] = $page->getNavigation();
+        $this->page['frontMatter'] = $page->getFrontMatter();
     }
 
     public function onLoadPage()
@@ -122,6 +123,7 @@ class DocsPage extends ComponentBase
             'docType' => $docs->getType(),
             'title' => $page->getTitle(),
             'pagePath' => $page->getPath(),
+            'frontMatter' => $page->getFrontMatter(),
             '#docs-menu' => $this->renderPartial('@menu', [
                 'mainNav' => $pageList->getNavigation(),
                 'docId' => $docs->getIdentifier(),
@@ -129,6 +131,7 @@ class DocsPage extends ComponentBase
                 'docType' => $docs->getType(),
                 'title' => $page->getTitle(),
                 'pagePath' => $page->getPath(),
+                'frontMatter' => $page->getFrontMatter(),
             ]),
             '#docs-content' => $this->renderPartial('@contents', [
                 'content' => $page->getContent(),
@@ -137,6 +140,7 @@ class DocsPage extends ComponentBase
                 'docType' => $docs->getType(),
                 'title' => $page->getTitle(),
                 'pagePath' => $page->getPath(),
+                'frontMatter' => $page->getFrontMatter(),
             ]),
             '#docs-toc' => $this->renderPartial('@toc', [
                 'pageNav' => $page->getNavigation(),
@@ -145,6 +149,7 @@ class DocsPage extends ComponentBase
                 'docType' => $docs->getType(),
                 'title' => $page->getTitle(),
                 'pagePath' => $page->getPath(),
+                'frontMatter' => $page->getFrontMatter(),
             ]),
         ];
     }

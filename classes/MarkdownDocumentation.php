@@ -15,6 +15,9 @@ use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
 use League\CommonMark\Extension\DefaultAttributes\DefaultAttributesExtension;
 use League\CommonMark\Extension\DisallowedRawHtml\DisallowedRawHtmlExtension;
 use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
+use League\CommonMark\Extension\FrontMatter\Data\SymfonyYamlFrontMatterParser;
+use League\CommonMark\Extension\FrontMatter\FrontMatterExtension;
+use League\CommonMark\Extension\FrontMatter\FrontMatterParser;
 use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
 use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
 use League\CommonMark\Extension\Table\TableExtension;
@@ -158,21 +161,30 @@ class MarkdownDocumentation extends BaseDocumentation
         if (is_null($this->environment)) {
             $this->environment = $this->createMarkdownEnvironment();
         }
-        $markdown = new MarkdownParser($this->environment);
-        $markdownAst = $markdown->parse($contents);
+
+        $frontMatterParser = new FrontMatterParser(new SymfonyYamlFrontMatterParser());
+        $parts = $frontMatterParser->parse($contents);
+        $frontMatter = $parts->getFrontMatter();
+        $contents = $parts->getContent();
+        $markdownParser = new MarkdownParser($this->environment);
+        $markdownAst = $markdownParser->parse($contents);
 
         // Find a title, if available
-        $matching = (new Query)
-            ->where(Query::type(Heading::class))
-            ->findAll($markdownAst);
+        if (!empty($frontMatter['title'])) {
+            $title = $frontMatter['title'];
+        } else {
+            $matching = (new Query)
+                ->where(Query::type(Heading::class))
+                ->findAll($markdownAst);
 
-        foreach ($matching as $node) {
-            if ($node->getLevel() === 1) {
-                $children = $node->children();
+            foreach ($matching as $node) {
+                if ($node->getLevel() === 1) {
+                    $children = $node->children();
 
-                foreach ($children as $child) {
-                    if ($child instanceof Text) {
-                        $title = $child->getLiteral();
+                    foreach ($children as $child) {
+                        if ($child instanceof Text) {
+                            $title = $child->getLiteral();
+                        }
                     }
                 }
             }
@@ -208,6 +220,14 @@ class MarkdownDocumentation extends BaseDocumentation
         // Render the document
         $renderer = new HtmlRenderer($this->environment);
         $rendered = $renderer->renderDocument($markdownAst);
+
+        // Prepend the front matter, if available
+        if (!empty($frontMatter)) {
+            $rendered = '<script id="frontMatter" type="application/json">'
+                . json_encode($frontMatter)
+                . '</script>' . "\n"
+                . $rendered;
+        }
 
         $this->getStorageDisk()->put(
             $this->getProcessedPath($directory . $fileName . '.htm'),
@@ -312,6 +332,7 @@ class MarkdownDocumentation extends BaseDocumentation
         $environment->addExtension(new DefaultAttributesExtension());
         $environment->addExtension(new DisallowedRawHtmlExtension());
         $environment->addExtension(new ExternalLinkExtension());
+        $environment->addExtension(new FrontMatterExtension());
         $environment->addExtension(new HeadingPermalinkExtension());
         $environment->addExtension(new StrikethroughExtension());
         $environment->addExtension(new TableExtension());
