@@ -4,13 +4,13 @@
 [![Codecov](https://img.shields.io/codecov/c/github/wintercms/wn-docs-plugin?style=flat-square)](https://codecov.io/gh/wintercms/wn-docs-plugin)
 [![Discord](https://img.shields.io/discord/816852513684193281?label=discord&style=flat-square)](https://discord.gg/D5MFSPH6Ux)
 
-Integrates a full suite of documentation direct into your Winter CMS installation. Documentation can be generated from Markdown files, static HTML files or from PHP code.
+Integrates a full suite of documentation direct into your Winter CMS installation. Documentation can be generated from Markdown files or analysed from PHP code.
 
 ## Features
 
-- Load documentation locally from your plugin, or from a remote ZIP file.
-- Generate content-based documentation from Markdown files or static HTML files.
-- Generate API documentation from PHP docblocks and parsed PHP code.
+- Generate documentation locally from your plugin, or from a remote ZIP file.
+- Create content-based documentation from Markdown files.
+- Create API documentation from PHP docblocks and parsed PHP code.
 - Can be used in both the Backend and CMS.
 
 ## Getting started
@@ -59,16 +59,16 @@ The method should return an array, with the key of each item representing the "c
 Parameter | Required | Description
 --------- | -------- | -----------
 `name` | Yes | The name of this documentation. This will be displayed in documentation lists.
-`type` | Yes | The type of documentation. It must be one of the following: `user`, `developer`, `api`. See the [Types of Documentation](#documentation-types) for more information.
+`type` | Yes | The type of documentation. It must be one of the following: `user`, `developer`, `api` or `event`. See the [Types of Documentation](#documentation-types) for more information.
 `source` | Yes | Where the documentation can be sourced from. Must be either `local` or `remote`.
-`path` | No | If `source` is local, this will determine the path - relative to the plugin root - that the documentation or code can be found.
-`url` | No | If `source` is remote, this will determine the URL to download the documentation source from. The URL must point to a ZIP file that can be extracted.
-`zipFolder` | No | If `source` is remote, this will allow you to limit the source to a folder within the ZIP file, if the ZIP includes other files.
+`path` | No | If `source` is local, this will determine the path - relative to the plugin root - that the documentation or code can be found. Not needed if the `source` is `remote`.
+`url` | No | If `source` is remote, this will determine the URL to download the documentation source from. The URL must point to a ZIP file that can be extracted. Not needed if the `source` is `local`.
+`zipFolder` | No | If `source` is remote, this will allow you to limit the source to a folder within the ZIP file, if the ZIP includes other files. Not needed if the `source` is `local`.
 `tocPath` | No | Determines the path, relative to the source, where the table of contents YAML file can be found. By default, the Docs plugin will look for a `toc.yaml` in the root folder of the documentation source.
 `image` | No | Provides an image representation of the documentation.
-`ignorePaths` | An array of paths to ignore when finding available documentation. Each path may be specified as a glob.
+`ignorePaths` | No | An array of paths to ignore when finding available documentation. Each path may be specified as a glob.
 
-For API documentation (ie. the `type` parameter is `api`), there are a couple of extra parameters that may be specified:
+For API documentation (ie. the `type` parameter is `api` or `event`), there are a couple of extra parameters that may be specified:
 
 Parameter | Description
 --------- | -----------
