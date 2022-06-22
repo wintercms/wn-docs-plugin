@@ -5,6 +5,8 @@ use Lang;
 use Config;
 use Validator;
 use ApplicationException;
+use Cms\Classes\Page;
+use Cms\Classes\Theme;
 use System\Classes\PluginManager;
 
 class DocsManager
@@ -69,8 +71,11 @@ class DocsManager
      * This will return an array of documentation details, with the following keys for each
      * documentation:
      *   - `id`: The identifier of the documentation
+     *   - `instance`: An instance of the `Documentation` class for the given documentation.
      *   - `name`: The name of the documentation
      *   - `type`: The type of documentation (one of `user`, `developer`, `api` or `events`)
+     *   - `pageUrl`: A URL to the page where this documentation can be viewed, if available.
+     *   - `sourceUrl`: A URL to the source repository for the documentation, if available.
      *   - `plugin`: The plugin providing the documentation
      *
      * @return array
@@ -80,11 +85,23 @@ class DocsManager
         $docs = [];
 
         foreach ($this->registered as $id => $doc) {
+            $instance = $this->getDocumentation($id);
+
+            // Find the page that this documentation is connected to
+            $theme = Theme::getActiveTheme();
+            $page = Page::listInTheme($theme)
+                ->withComponent('docsPage', function ($component) use ($id) {
+                    return $component->property('docId') === $id;
+                })
+                ->first();
+
             $docs[] = [
                 'id' => $id,
-                'instance' => $this->getDocumentation($id),
+                'instance' => $instance,
                 'name' => $doc['name'],
                 'type' => $doc['type'],
+                'pageUrl' => ($page) ? Page::url($page->getFileName(), ['slug' => '']) : null,
+                'sourceUrl' => $instance->getRepositoryUrl(),
                 'plugin' => Lang::get($this->pluginManager
                     ->findByIdentifier($doc['plugin'])
                     ->pluginDetails()['name']),

@@ -40,6 +40,7 @@ class Plugin extends PluginBase
     {
         return [
             \Winter\Docs\Components\DocsPage::class => 'docsPage',
+            \Winter\Docs\Components\DocsList::class => 'docsList',
         ];
     }
 
