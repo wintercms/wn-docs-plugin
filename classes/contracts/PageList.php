@@ -91,4 +91,9 @@ interface PageList
      * Creates a search index for the available pages in the documentation.
      */
     public function index(): void;
+
+    /**
+     * Gets the identifier for the doc instance.
+     */
+    public function getDocsIdentifier(): string;
 }

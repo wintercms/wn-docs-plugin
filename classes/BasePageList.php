@@ -151,7 +151,7 @@ abstract class BasePageList implements PageList
     abstract public function index(): void;
 
     /**
-     * Gets the identifier for the doc instance.
+     * @inheritDoc
      */
     public function getDocsIdentifier(): string
     {
