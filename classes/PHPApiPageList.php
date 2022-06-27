@@ -24,6 +24,8 @@ class PHPApiPageList extends BasePageList
      */
     public function __construct(PHPApiDocumentation $docs, string $pageMap, string $toc)
     {
+        $this->docs = $docs;
+
         foreach (json_decode($pageMap, true) as $path => $page) {
             $this->pages[$path] = new HtmlPage($docs, $path, $page['title']);
         }
@@ -58,9 +60,12 @@ class PHPApiPageList extends BasePageList
      */
     public function index(): void
     {
-        $index = new MarkdownPageIndex([
-            'pageList' => $this,
-        ]);
+        PHPApiPageIndex::setPageList($this);
+        PHPApiPageIndex::needsUpdate();
+
+        $index = new PHPApiPageIndex;
         $index->index();
+
+        PHPApiPageIndex::setPageList(null);
     }
 }

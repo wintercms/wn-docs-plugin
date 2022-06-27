@@ -125,7 +125,11 @@ class PHPApiDocumentation extends BaseDocumentation
         );
     }
 
-    protected function processClassLevel(PHPApiParser $parser, array $classMap, array &$nav, string $baseNamespace = '')
+    /**
+     * Traverses the class map parsed through the PHP API parser and renders a documentation page
+     * for each class.
+     */
+    protected function processClassLevel(PHPApiParser $parser, array $classMap, array &$nav, string $baseNamespace = ''): void
     {
         foreach ($classMap as $key => $value) {
             if (is_array($value)) {
@@ -138,6 +142,8 @@ class PHPApiDocumentation extends BaseDocumentation
                 ];
                 continue;
             }
+
+            $class = $parser->getClass($value);
 
             $navItem = [
                 'title' => $key,
@@ -153,12 +159,38 @@ class PHPApiDocumentation extends BaseDocumentation
             // Create docs
             $this->getStorageDisk()->put(
                 $this->getProcessedPath(ltrim($baseNamespace . '/' . $key . '.htm')),
-                $this->preparedTemplate->render([
-                    'class' => $parser->getClass($value),
-                ])
+                $this->prependFrontMatter($class, $this->preparedTemplate->render([
+                    'class' => $class,
+                ]))
             );
 
             $nav[] = $navItem;
         }
+    }
+
+    /**
+     * Adds index data as front matter to the generated documentation page.
+     */
+    protected function prependFrontMatter(array $class, string $template): string
+    {
+        $frontMatter = [
+            'title' => $class['class'],
+            'methods' => array_map(function ($item) {
+                return $item['name'];
+            }, $class['methods'] ?? []),
+            'properties' => array_map(function ($item) {
+                return $item['name'];
+            }, $class['properties'] ?? []),
+            'constants' => array_map(function ($item) {
+                return $item['name'];
+            }, $class['constants'] ?? []),
+            'summary' => $class['docs']['summary'] ?? '',
+            'description' => $class['docs']['body'] ?? '',
+        ];
+
+        return '<script id="frontMatter" type="application/json">'
+            . json_encode($frontMatter)
+            . '</script>' . "\n"
+            . $template;
     }
 }
