@@ -1,9 +1,11 @@
 <?php namespace Winter\Docs\Components;
 
+use View;
 use Flash;
 use Request;
 use Cms\Classes\ComponentBase;
 use Winter\Docs\Classes\DocsManager;
+use Winter\Storm\Exception\AjaxException;
 
 class DocsPage extends ComponentBase
 {
@@ -52,7 +54,7 @@ class DocsPage extends ComponentBase
 
         if (!$docs->isAvailable()) {
             // Docs must be processed
-            return;
+            return response(View::make('backend::404'), 404);
         }
 
         $pageList = $docs->getPageList();
@@ -65,7 +67,7 @@ class DocsPage extends ComponentBase
         } else {
             $page = $pageList->getPage($path);
             if (is_null($page)) {
-                return response(404);
+                return response(View::make('backend::404'), 404);
             }
             $page->load($this->controller->pageUrl($this->page->baseFileName, [
                 'slug' => ''
@@ -96,8 +98,9 @@ class DocsPage extends ComponentBase
         $docs = $docsManager->getDocumentation($docId);
 
         if (!$docs->isAvailable()) {
-            Flash::error('Documentation does not exist');
-            return;
+            throw new AjaxException([
+                'error' => 'The documentation that you have requested does not exist',
+            ]);
         }
 
         $pageList = $docs->getPageList();
@@ -110,8 +113,9 @@ class DocsPage extends ComponentBase
         } else {
             $page = $pageList->getPage($path);
             if (is_null($page)) {
-                Flash::error('The page you have requested does not exist');
-                return;
+                throw new AjaxException([
+                    'error' => 'The page that you have requested does not exist',
+                ]);
             }
             $page->load($this->controller->pageUrl($this->page->baseFileName, [
                 'slug' => ''
