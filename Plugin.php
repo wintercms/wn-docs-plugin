@@ -2,6 +2,10 @@
 
 use Backend;
 use System\Classes\PluginBase;
+use Winter\Docs\Classes\DocsManager;
+use Winter\Docs\Classes\MarkdownDocumentation;
+use Winter\Docs\Classes\MarkdownPageIndex;
+use Winter\Docs\Classes\PHPApiPageIndex;
 
 class Plugin extends PluginBase
 {
@@ -65,5 +69,39 @@ class Plugin extends PluginBase
             \Winter\Docs\Console\DocsList::class,
             \Winter\Docs\Console\DocsProcess::class,
         ]);
+    }
+
+    public function registerSearchHandlers()
+    {
+        $handlers = [];
+        $docs = DocsManager::instance()->listDocumentation();
+
+        foreach ($docs as $doc) {
+            if (!$doc['instance']->isProcessed()) {
+                continue;
+            }
+
+            $handlers['docs.' . $doc['id']] = [
+                'name' => $doc['name'],
+                'model' => function () use ($doc) {
+                    if ($doc['instance'] instanceof MarkdownDocumentation) {
+                        MarkdownPageIndex::setPageList($doc['instance']->getPageList());
+
+                        return new MarkdownPageIndex();
+                    }
+
+                    PHPApiPageIndex::setPageList($doc['instance']->getPageList());
+
+                    return new PHPApiPageIndex();
+                },
+                'record' => [
+                    'title' => 'title',
+                    'description' => 'title',
+                    'url' => 'path',
+                ],
+            ];
+        }
+
+        return $handlers;
     }
 }
