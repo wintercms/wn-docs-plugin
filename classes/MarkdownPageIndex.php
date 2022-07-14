@@ -31,19 +31,24 @@ class MarkdownPageIndex extends BasePageIndex
         'content',
     ];
 
-    public function index()
+    public function getRecords(): array
     {
-        foreach (static::$pageList->getPages() as $page) {
+        return array_map(function ($page) {
             $page->load();
 
-            $index = new static([
-                'pageList' => $this->pageList,
+            return [
                 'slug' => Str::slug(str_replace('/', '-', $page->getPath())),
                 'path' => $page->getPath(),
                 'title' => $page->getTitle(),
                 'content' => strip_tags($page->getContent()),
-            ]);
-            $index->save();
-        }
+            ];
+        }, static::$pageList->getPages());
+    }
+
+    public function index()
+    {
+        static::all()->each(function ($item) {
+            $item->save();
+        });
     }
 }

@@ -16,6 +16,7 @@ class PHPApiPageIndex extends BasePageIndex
         'methods',
         'properties',
         'constants',
+        'summary',
         'description',
     ];
 
@@ -25,6 +26,7 @@ class PHPApiPageIndex extends BasePageIndex
         'methods' => 'text',
         'properties' => 'text',
         'constants' => 'text',
+        'summary' => 'text',
         'description' => 'text',
     ];
 
@@ -34,31 +36,32 @@ class PHPApiPageIndex extends BasePageIndex
         'methods',
         'properties',
         'constants',
+        'summary',
         'description',
     ];
 
-    public $jsonable = [
-        'methods',
-        'properties',
-        'constants',
-    ];
-
-    public function index()
+    public function getRecords(): array
     {
-        foreach (static::$pageList->getPages() as $page) {
+        return array_map(function ($page) {
             $page->load();
             $frontMatter = $page->getFrontMatter();
 
-            $index = new static([
+            return [
                 'slug' => Str::slug(str_replace('/', '-', $page->getPath())),
                 'class' => $frontMatter['title'],
-                'methods' => $frontMatter['methods'],
-                'properties' => $frontMatter['properties'],
-                'constants' => $frontMatter['constants'],
-                'summary' => $frontMatter['summary'],
-                'description' => $frontMatter['description'],
-            ]);
-            $index->save();
-        }
+                'methods' => json_encode($frontMatter['methods']),
+                'properties' => json_encode($frontMatter['properties']),
+                'constants' => json_encode($frontMatter['constants']),
+                'summary' => strip_tags($frontMatter['summary']),
+                'description' => strip_tags($frontMatter['description']),
+            ];
+        }, static::$pageList->getPages());
+    }
+
+    public function index()
+    {
+        static::all()->each(function ($item) {
+            $item->save();
+        });
     }
 }
