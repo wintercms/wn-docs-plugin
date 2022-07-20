@@ -9,6 +9,7 @@ use phpDocumentor\Reflection\Type;
 use phpDocumentor\Reflection\Types\Compound;
 use phpDocumentor\Reflection\Types\Object_;
 use phpDocumentor\Reflection\Types\Void_;
+use PhpParser\Comment\Doc;
 use PhpParser\ConstExprEvaluationException;
 use PhpParser\ConstExprEvaluator;
 use PhpParser\Error;
@@ -26,7 +27,7 @@ use Winter\Storm\Support\Arr;
  * PHP API Parser.
  *
  * This class will parse a directory for all PHP files and will extract the necessary information to generate
- * documentation for these files. This includes constants, properties and methods.
+ * documentation for these files. This includes constants, properties, methods and events.
  *
  * @author Ben Thomson <git@alfreido.com>
  * @author Winter CMS
@@ -57,6 +58,12 @@ class PHPApiParser
 
     /** A list of paths that could not be parsed. */
     protected array $failedPaths = [];
+
+    /**
+     * A list of classes, with each class containing an array of events found. The details of these events will be
+     * included in the class definitions.
+     */
+    protected array $events = [];
 
     /** Factory instance for generating DocBlock reflections */
     protected DocBlockFactory $docBlockFactory;
@@ -92,9 +99,11 @@ class PHPApiParser
         $nodeTraverser->addVisitor($nameResolver);
 
         foreach ($this->getPaths() as $file) {
+            $contents = file_get_contents($file);
+
             // Parse PHP file
             try {
-                $parsed = $parser->parse(file_get_contents($file));
+                $parsed = $parser->parse($contents);
                 $parsed = $nodeTraverser->traverse($parsed);
             } catch (Error $error) {
                 $this->failedPaths[] = [
@@ -139,13 +148,20 @@ class PHPApiParser
             $groupedUses = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\GroupUse::class);
             $uses = $this->parseUseCases($singleUses, $groupedUses);
 
+            // Find method calls that have comments
+            $methodsWithEvents = $nodeFinder->find($parsed, function (\PhpParser\Node $node) {
+                return $node instanceof \PhpParser\Node\Expr\MethodCall
+                    && $node->getDocComment()
+                    && $this->isEventDocBlock($node->getDocComment());
+            });
+
             // Parse the objects
             switch (get_class($objects[0])) {
                 case \PhpParser\Node\Stmt\Class_::class:
-                    $class = $this->parseClassNode($objects[0], $namespace, $uses);
+                    $class = $this->parseClassNode($objects[0], $namespace, $uses, $methodsWithEvents);
                     break;
                 case \PhpParser\Node\Stmt\Trait_::class:
-                    $class = $this->parseTraitNode($objects[0], $namespace, $uses);
+                    $class = $this->parseTraitNode($objects[0], $namespace, $uses, $methodsWithEvents);
                     break;
                 case \PhpParser\Node\Stmt\Interface_::class:
                     $class = $this->parseInterfaceNode($objects[0], $namespace, $uses);
@@ -347,9 +363,10 @@ class PHPApiParser
      * @param \PhpParser\Node\Stmt\Class_ $class
      * @param string $namespace
      * @param array $uses
+     * @param array $methodsWithEvents
      * @return array
      */
-    protected function parseClassNode(\PhpParser\Node\Stmt\Class_ $class, string $namespace, array $uses = [])
+    protected function parseClassNode(\PhpParser\Node\Stmt\Class_ $class, string $namespace, array $uses = [], array $methodsWithEvents = [])
     {
         $name = (string) $class->name;
         $fqClass = $namespace . '\\' . $class->name;
@@ -364,6 +381,17 @@ class PHPApiParser
             $docs = $this->parseDocBlock($class->getDocComment(), $namespace, $uses);
         } else {
             $docs = null;
+        }
+
+        $events = $this->parseClassEvents($class, $namespace, $uses, $methodsWithEvents);
+
+        if (count($events)) {
+            foreach ($events as $event) {
+                if (!isset($this->events[$fqClass])) {
+                    $this->events[$fqClass] = [];
+                }
+                $this->events[$fqClass][] = $event['name'];
+            }
         }
 
         return [
@@ -381,6 +409,7 @@ class PHPApiParser
             'constants' => $this->parseClassConstants($class, $namespace, $uses),
             'properties' => $this->parseClassProperties($class, $namespace, $uses),
             'methods' => $this->parseClassMethods($class, $namespace, $uses),
+            'events' => $events,
         ];
     }
 
@@ -423,7 +452,7 @@ class PHPApiParser
      * @param array $uses
      * @return array
      */
-    protected function parseTraitNode(\PhpParser\Node\Stmt\Trait_ $class, string $namespace, array $uses = [])
+    protected function parseTraitNode(\PhpParser\Node\Stmt\Trait_ $class, string $namespace, array $uses = [], array $methodsWithEvents = [])
     {
         $name = (string) $class->name;
         $fqClass = $namespace . '\\' . $class->name;
@@ -432,6 +461,17 @@ class PHPApiParser
             $docs = $this->parseDocBlock($class->getDocComment(), $namespace, $uses);
         } else {
             $docs = null;
+        }
+
+        $events = $this->parseClassEvents($class, $namespace, $uses, $methodsWithEvents);
+
+        if (count($events)) {
+            foreach ($events as $event) {
+                if (!isset($this->events[$fqClass])) {
+                    $this->events[$fqClass] = [];
+                }
+                $this->events[$fqClass][] = $event['name'];
+            }
         }
 
         return [
@@ -444,6 +484,7 @@ class PHPApiParser
             'constants' => $this->parseClassConstants($class, $namespace, $uses),
             'properties' => $this->parseClassProperties($class, $namespace, $uses),
             'methods' => $this->parseClassMethods($class, $namespace, $uses),
+            'events' => $events,
         ];
     }
 
@@ -567,6 +608,26 @@ class PHPApiParser
     }
 
     /**
+     * Processes the params of a given event and returns an array of documentation for the param.
+     *
+     * @param array $docs
+     * @param string $namespace
+     * @param array $uses
+     * @return array
+     */
+    protected function processEventParams(array $docs, string $namespace, array $uses = [])
+    {
+        return array_map(function ($key, $value) use ($namespace, $uses, $docs) {
+            return [
+                'name' => $key,
+                'type' => $value['type'],
+                'summary' => $value['summary'],
+                'default' => null,
+            ];
+        }, array_keys($docs['params'] ?? []), array_values($docs['params'] ?? []));
+    }
+
+    /**
      * Parse the given class traits and return documentation information.
      *
      * @param \PhpParser\Node\Stmt\ClassLike $class
@@ -579,6 +640,36 @@ class PHPApiParser
         return array_map(function ($trait) use ($namespace, $uses) {
             return $this->resolveName($trait->traits[0], $namespace, $uses);
         }, $class->getTraitUses());
+    }
+
+    /**
+     * Parse the given class for event docblocks.
+     *
+     * @param \PhpParser\Node\Stmt\ClassLike $class
+     * @param string $namespace
+     * @param array $uses
+     * @param array $methodsWithEvents
+     * @return array
+     */
+    protected function parseClassEvents(\PhpParser\Node\Stmt\ClassLike $class, string $namespace, array $uses = [], array $methodsWithEvents = [])
+    {
+        return array_filter(array_map(function ($methodEvent) use ($class, $namespace, $uses) {
+            $event = $this->parseEvent($methodEvent->getDocComment());
+
+            if (is_null($event)) {
+                return null;
+            }
+
+            $docs = $this->parseDocBlock($event['docBlock'], $namespace, $uses);
+
+            return [
+                'name' => $event['name'],
+                'method' => (string) $methodEvent->name,
+                'params' => $this->processEventParams($docs, $namespace, $uses),
+                'docs' => $docs,
+                'lines' => [$methodEvent->getDocComment()->getStartLine(), $methodEvent->getDocComment()->getEndLine()],
+            ];
+        }, $methodsWithEvents));
     }
 
     /**
@@ -724,6 +815,38 @@ class PHPApiParser
             }
             return !is_null($item);
         }, ARRAY_FILTER_USE_BOTH);
+    }
+
+    /**
+     * Parses an event docblock, extracts the name and removes it so it can be parsed by the DocBlock parser.
+     *
+     * @param Doc $docBlock
+     * @return array
+     */
+    protected function parseEvent(Doc $docBlock)
+    {
+        $text = $docBlock->getReformattedText();
+
+        // Get event name before stripping out tag
+        preg_match('/^( +\* |\/\*\* )@event +([^ ]+)/m', $text, $matches);
+        $eventName = $matches[2] ?? null;
+
+        if (is_null($eventName)) {
+            return null;
+        }
+
+        if (preg_match('/^\/\*\* @event.*?$/m', $text)) {
+            // Remove an event tag at the start of a docblock
+            $text = preg_replace('/^\/\*\* @event.*?$/m', '/**', $text);
+        } else {
+            // Remove an event tag within the docblock, plus an empty line underneath if it exists
+            $text = preg_replace('/^( +\* )@event.*?[\n\r]+( +\* *[\n\r]+)?/m', '', $text);
+        }
+
+        return [
+            'name' => $eventName,
+            'docBlock' => $text,
+        ];
     }
 
     /**
@@ -1149,6 +1272,18 @@ class PHPApiParser
         } catch (ConstExprEvaluationException $e) {
             return new Void_;
         }
+    }
+
+    /**
+     * Determines if the current docblock appears to be an event docblock.
+     *
+     * @param Doc $docBlock
+     * @return boolean
+     */
+    protected function isEventDocBlock(Doc $docBlock)
+    {
+        $text = $docBlock->getReformattedText();
+        return preg_match('/^( +\* |\/\*\* )@event/m', $text) === 1;
     }
 
     /**

@@ -61,10 +61,19 @@ class Mysql extends BaseDb implements DbContract
     /**
      * Closes the MySQL connection.
      *
+     * @param bool $force If the connection should be force closed.
      * @return void
      */
-    public function close(): void
+    public function close($force = false): void
     {
-
+        /**
+         * @event mysql.close
+         *
+         * Fired when the MySQL connection is closed.
+         *
+         * @param \Docs\Api\Database\Mysql $mysql The MySQL instance.
+         * @param bool $force If the connection is being forced-closed.
+         */
+        $this->fireEvent('mysql.close', [$this, $force]);
     }
 }

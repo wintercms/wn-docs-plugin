@@ -1,8 +1,7 @@
 <?php namespace Winter\Docs\Tests\Classes;
 
-use File;
 use ApplicationException;
-use TestCase;
+use System\Tests\Bootstrap\TestCase;
 
 /**
  * @covers \Winter\Docs\Classes\BaseDocumentation

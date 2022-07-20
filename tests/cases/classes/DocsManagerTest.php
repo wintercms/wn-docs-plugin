@@ -1,6 +1,6 @@
 <?php namespace Winter\Docs\Tests\Classes;
 
-use PluginTestCase;
+use System\Tests\Bootstrap\PluginTestCase;
 use System\Classes\PluginManager;
 use Winter\Docs\Classes\DocsManager;
 

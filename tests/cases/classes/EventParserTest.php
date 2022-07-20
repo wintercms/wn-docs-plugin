@@ -1,6 +1,6 @@
 <?php namespace Winter\Docs\Tests\Classes;
 
-use TestCase;
+use System\Tests\Bootstrap\TestCase;
 use Winter\Docs\Classes\EventParser;
 
 class EventParserTest extends TestCase
