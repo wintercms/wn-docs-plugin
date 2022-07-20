@@ -149,19 +149,18 @@ class PHPApiParser
             $uses = $this->parseUseCases($singleUses, $groupedUses);
 
             // Find method calls that have comments
-            $methodsWithEvents = $nodeFinder->find($parsed, function (\PhpParser\Node $node) {
-                return $node instanceof \PhpParser\Node\Expr\MethodCall
-                    && $node->getDocComment()
+            $eventDocBlocks = $nodeFinder->find($parsed, function (\PhpParser\Node $node) {
+                return $node->getDocComment()
                     && $this->isEventDocBlock($node->getDocComment());
             });
 
             // Parse the objects
             switch (get_class($objects[0])) {
                 case \PhpParser\Node\Stmt\Class_::class:
-                    $class = $this->parseClassNode($objects[0], $namespace, $uses, $methodsWithEvents);
+                    $class = $this->parseClassNode($objects[0], $namespace, $uses, $eventDocBlocks);
                     break;
                 case \PhpParser\Node\Stmt\Trait_::class:
-                    $class = $this->parseTraitNode($objects[0], $namespace, $uses, $methodsWithEvents);
+                    $class = $this->parseTraitNode($objects[0], $namespace, $uses, $eventDocBlocks);
                     break;
                 case \PhpParser\Node\Stmt\Interface_::class:
                     $class = $this->parseInterfaceNode($objects[0], $namespace, $uses);
@@ -378,10 +377,10 @@ class PHPApiParser
      * @param \PhpParser\Node\Stmt\Class_ $class
      * @param string $namespace
      * @param array $uses
-     * @param array $methodsWithEvents
+     * @param array $eventDocBlocks
      * @return array
      */
-    protected function parseClassNode(\PhpParser\Node\Stmt\Class_ $class, string $namespace, array $uses = [], array $methodsWithEvents = [])
+    protected function parseClassNode(\PhpParser\Node\Stmt\Class_ $class, string $namespace, array $uses = [], array $eventDocBlocks = [])
     {
         $name = (string) $class->name;
         $fqClass = $namespace . '\\' . $class->name;
@@ -398,7 +397,7 @@ class PHPApiParser
             $docs = null;
         }
 
-        $events = $this->parseClassEvents($class, $namespace, $uses, $methodsWithEvents);
+        $events = $this->parseClassEvents($class, $namespace, $uses, $eventDocBlocks);
 
         if (count($events)) {
             foreach ($events as $event) {
@@ -465,9 +464,10 @@ class PHPApiParser
      * @param \PhpParser\Node\Stmt\Trait_ $class
      * @param string $namespace
      * @param array $uses
+     * @param array $eventDocBlocks
      * @return array
      */
-    protected function parseTraitNode(\PhpParser\Node\Stmt\Trait_ $class, string $namespace, array $uses = [], array $methodsWithEvents = [])
+    protected function parseTraitNode(\PhpParser\Node\Stmt\Trait_ $class, string $namespace, array $uses = [], array $eventDocBlocks = [])
     {
         $name = (string) $class->name;
         $fqClass = $namespace . '\\' . $class->name;
@@ -478,7 +478,7 @@ class PHPApiParser
             $docs = null;
         }
 
-        $events = $this->parseClassEvents($class, $namespace, $uses, $methodsWithEvents);
+        $events = $this->parseClassEvents($class, $namespace, $uses, $eventDocBlocks);
 
         if (count($events)) {
             foreach ($events as $event) {
@@ -663,13 +663,13 @@ class PHPApiParser
      * @param \PhpParser\Node\Stmt\ClassLike $class
      * @param string $namespace
      * @param array $uses
-     * @param array $methodsWithEvents
+     * @param array $eventDocBlocks
      * @return array
      */
-    protected function parseClassEvents(\PhpParser\Node\Stmt\ClassLike $class, string $namespace, array $uses = [], array $methodsWithEvents = [])
+    protected function parseClassEvents(\PhpParser\Node\Stmt\ClassLike $class, string $namespace, array $uses = [], array $eventDocBlocks = [])
     {
-        return array_filter(array_map(function ($methodEvent) use ($class, $namespace, $uses) {
-            $event = $this->parseEvent($methodEvent->getDocComment());
+        return array_filter(array_map(function ($node) use ($class, $namespace, $uses) {
+            $event = $this->parseEvent($node->getDocComment());
 
             if (is_null($event)) {
                 return null;
@@ -679,12 +679,11 @@ class PHPApiParser
 
             return [
                 'name' => $event['name'],
-                'method' => (string) $methodEvent->name,
                 'params' => $this->processEventParams($docs, $namespace, $uses),
                 'docs' => $docs,
-                'lines' => [$methodEvent->getDocComment()->getStartLine(), $methodEvent->getDocComment()->getEndLine()],
+                'lines' => [$node->getDocComment()->getStartLine(), $node->getDocComment()->getEndLine()],
             ];
-        }, $methodsWithEvents));
+        }, $eventDocBlocks));
     }
 
     /**
