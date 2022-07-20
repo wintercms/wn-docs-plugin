@@ -295,6 +295,21 @@ class PHPApiParser
     }
 
     /**
+     * Get all events encountered in this codebase.
+     *
+     * This should be run after `parse()`.
+     *
+     * This array will contain a list of classes, with the name of the events encountered in the class. The actual
+     * event definitions will be found in the class definition.
+     *
+     * @return array
+     */
+    public function getEvents()
+    {
+        return $this->events;
+    }
+
+    /**
      * Parses the "use" cases found in the PHP class.
      *
      * @param string $namespace
