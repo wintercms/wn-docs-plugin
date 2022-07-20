@@ -1,7 +1,7 @@
 <?php namespace Winter\Docs\Components;
 
+use App;
 use View;
-use Flash;
 use Request;
 use Cms\Classes\ComponentBase;
 use Winter\Docs\Classes\DocsManager;
@@ -53,8 +53,7 @@ class DocsPage extends ComponentBase
         $docs = $docsManager->getDocumentation($docId);
 
         if (!$docs->isAvailable()) {
-            // Docs must be processed
-            return response(View::make('backend::404'), 404);
+            return $this->respond404();
         }
 
         $pageList = $docs->getPageList();
@@ -67,7 +66,7 @@ class DocsPage extends ComponentBase
         } else {
             $page = $pageList->getPage($path);
             if (is_null($page)) {
-                return response(View::make('backend::404'), 404);
+                return $this->respond404();
             }
             $page->load($this->controller->pageUrl($this->page->baseFileName, [
                 'slug' => ''
@@ -182,5 +181,20 @@ class DocsPage extends ComponentBase
         }
 
         return $options;
+    }
+
+    /**
+     * Responds with the CMS 404 page.
+     *
+     * @return Response
+     */
+    protected function respond404()
+    {
+        if (App::runningInBackend()) {
+            return response(View::make('backend::404'), 404);
+        } else {
+            $this->controller->setStatusCode(404);
+            return $this->controller->run('404');
+        }
     }
 }
