@@ -184,7 +184,7 @@ class DocsPage extends ComponentBase
     }
 
     /**
-     * Responds with the CMS 404 page.
+     * Responds with the correct 404 page depending on location.
      *
      * @return Response
      */
