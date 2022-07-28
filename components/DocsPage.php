@@ -75,7 +75,7 @@ class DocsPage extends ComponentBase
         $pageList->setActivePage($page);
 
         $this->page['docId'] = $docs->getIdentifier();
-        $this->page['docTitle'] = $docs->getName();
+        $this->page['docName'] = $docs->getName();
         $this->page['docType'] = $docs->getType();
         $this->page['sourceUrl'] = $docs->getRepositoryUrl();
         $this->page['mainNav'] = $pageList->getNavigation();
