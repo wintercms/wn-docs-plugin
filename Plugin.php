@@ -105,7 +105,11 @@ class Plugin extends PluginBase
                     $excerpt = Str::excerpt($record->content, $query);
 
                     if (is_null($excerpt)) {
-                        $excerpt = Str::substr($record->content, 0, 100);
+                        if (Str::length($record->content) > 200) {
+                            $excerpt = Str::substr($record->content, 0, 200) . '...';
+                        } else {
+                            $excerpt = $record->content;
+                        }
                     }
 
                     return [

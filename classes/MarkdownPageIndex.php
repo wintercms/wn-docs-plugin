@@ -40,7 +40,7 @@ class MarkdownPageIndex extends BasePageIndex
                 'slug' => Str::slug(str_replace('/', '-', $page->getPath())),
                 'path' => $page->getPath(),
                 'title' => $page->getTitle(),
-                'content' => strip_tags($page->getContent()),
+                'content' => $this->processContent($page->getContent()),
             ];
         }, static::$pageList->getPages());
     }
@@ -50,5 +50,35 @@ class MarkdownPageIndex extends BasePageIndex
         static::all()->each(function ($item) {
             $item->save();
         });
+    }
+
+    /**
+     * Processes the content into an indexable content block.
+     *
+     * This will strip code blocks, anchors and HTML tags from the content, and convert the content
+     * to single-line content so that it's more easily indexed and excerpted.
+     *
+     * @param string $content
+     * @return string
+     */
+    protected function processContent(string $content): string
+    {
+        // Ignore code blocks from indexed content
+        $content = preg_replace('/<pre>\s*<code[^>]*>.*?<\/code>\s*<\/pre>/s', '', $content);
+
+        // Strip table of contents
+        $content = preg_replace('/<ul class="table-of-contents">.*?<\/ul>/s', '', $content);
+
+        // Strip main title tag
+        $content = preg_replace('/<h1 class="main-title">.*?<\/h1>/s', '', $content);
+
+        // Strip anchors
+        $content = preg_replace('/<a[^>]+>#<\/a>/s', '', $content);
+
+        // Apply final tweaks
+        $content = strip_tags($content);
+        $content = preg_replace('/[\r\n ]+/', ' ', $content);
+
+        return $content;
     }
 }
