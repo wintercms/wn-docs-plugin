@@ -1,6 +1,8 @@
 <?php namespace Winter\Docs;
 
 use Backend;
+use Cms\Classes\Page;
+use Cms\Classes\Theme;
 use System\Classes\PluginBase;
 use Winter\Docs\Classes\DocsManager;
 use Winter\Docs\Classes\MarkdownDocumentation;
@@ -81,6 +83,10 @@ class Plugin extends PluginBase
                 continue;
             }
 
+            // Find page connected to this documentation.
+            $theme = Theme::getActiveTheme();
+            $page = Page::inTheme($theme)->whereComponent('docsPage', 'docId', $doc['id'])->first();
+
             $handlers['docs.' . $doc['id']] = [
                 'name' => $doc['name'],
                 'model' => function () use ($doc) {
@@ -97,7 +103,9 @@ class Plugin extends PluginBase
                 'record' => [
                     'title' => 'title',
                     'description' => 'title',
-                    'url' => 'path',
+                    'url' => function ($record) use ($page) {
+                        return Page::url($page->getBaseFileName(), ['slug' => $record->path]);
+                    },
                 ],
             ];
         }
