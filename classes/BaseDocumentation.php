@@ -365,6 +365,17 @@ abstract class BaseDocumentation implements Documentation
     }
 
     /**
+     * Resets cached states (is available?, is downloaded?)
+     *
+     * @return void
+     */
+    public function resetState(): void
+    {
+        $this->downloaded = null;
+        $this->available = null;
+    }
+
+    /**
      * Checks if a remotely-sourced documentation ZIP file is available.
      */
     protected function isRemoteAvailable(): bool

@@ -61,6 +61,7 @@ class DocsProcess extends Command
         // Process documentation
         $this->line(' - Processing documentation');
         $doc->process();
+        $doc->resetState();
 
         $pageList = $doc->getPageList();
         if ($pageList->isSearchable()) {
