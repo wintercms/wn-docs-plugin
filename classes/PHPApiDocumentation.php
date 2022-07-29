@@ -101,6 +101,10 @@ class PHPApiDocumentation extends BaseDocumentation
         $apiParser = new PHPApiParser($basePath, $this->sourcePaths, $this->ignoredPaths);
         $apiParser->parse();
         $classMap = $apiParser->getClassMap();
+        $events = $apiParser->getEvents();
+
+        print_r($events);
+        die();
 
         // Prepare Twig template
         $twig = App::make('twig.environment');
