@@ -8,6 +8,7 @@ use Winter\Docs\Classes\DocsManager;
 use Winter\Docs\Classes\MarkdownDocumentation;
 use Winter\Docs\Classes\MarkdownPageIndex;
 use Winter\Docs\Classes\PHPApiPageIndex;
+use Winter\Storm\Support\Str;
 
 class Plugin extends PluginBase
 {
@@ -100,13 +101,19 @@ class Plugin extends PluginBase
 
                     return new PHPApiPageIndex();
                 },
-                'record' => [
-                    'title' => 'title',
-                    'description' => 'title',
-                    'url' => function ($record) use ($page) {
-                        return Page::url($page->getBaseFileName(), ['slug' => $record->path]);
-                    },
-                ],
+                'record' => function ($record, $query) use ($page) {
+                    $excerpt = Str::excerpt($record->content, $query);
+
+                    if (is_null($excerpt)) {
+                        $excerpt = Str::substr($record->content, 0, 100);
+                    }
+
+                    return [
+                        'title' => $record->title,
+                        'description' => $excerpt,
+                        'url' => Page::url($page->getBaseFileName(), ['slug' => $record->path]),
+                    ];
+                },
             ];
         }
 
