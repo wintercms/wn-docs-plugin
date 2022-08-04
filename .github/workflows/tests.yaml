@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: wintercms/winter
-          ref: wip/1.2
+          ref: develop
 
       - name: Checkout plugin
         uses: actions/checkout@v2
@@ -73,16 +73,16 @@ jobs:
         run: composer install --no-interaction --no-progress --no-scripts
 
       - name: Setup problem matchers for PHPUnit
-        if: matrix.phpVersion == '7.4'
+        if: matrix.phpVersion == '8.0'
         run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
       - name: Run tests
-        if: matrix.phpVersion != '7.4' || matrix.operatingSystem != 'ubuntu-latest'
+        if: matrix.phpVersion != '8.0' || matrix.operatingSystem != 'ubuntu-latest'
         working-directory: plugins/winter/docs
         run: ../../../vendor/bin/phpunit
 
       - name: Run tests (and generate coverage report)
-        if: matrix.phpVersion == '7.4' && matrix.operatingSystem == 'ubuntu-latest'
+        if: matrix.phpVersion == '8.0' && matrix.operatingSystem == 'ubuntu-latest'
         env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         working-directory: plugins/winter/docs
