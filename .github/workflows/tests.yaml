@@ -78,8 +78,7 @@ jobs:
 
       - name: Run tests
         if: matrix.phpVersion != '8.0' || matrix.operatingSystem != 'ubuntu-latest'
-        working-directory: plugins/winter/docs
-        run: ../../../vendor/bin/phpunit
+        run: php artisan winter:test -p Winter.Docs -- --testdox
 
       - name: Run tests (and generate coverage report)
         if: matrix.phpVersion == '8.0' && matrix.operatingSystem == 'ubuntu-latest'
@@ -87,5 +86,5 @@ jobs:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         working-directory: plugins/winter/docs
         run: |
-            ../../../vendor/bin/phpunit --testdox --coverage-clover coverage.xml
+            php artisan winter:test -p Winter.Docs --testdox --coverage-clover coverage.xml
             bash <(curl -s https://codecov.io/bash)
