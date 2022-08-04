@@ -1,9 +1,14 @@
 <?php namespace Winter\Docs\Tests\Classes;
 
+use System\Tests\Bootstrap\PluginTestCase;
+use System\Classes\PluginManager;
 use Winter\Docs\Classes\DocsManager;
-use TestCase;
 
-class DocsManagerTest extends TestCase
+/**
+ * @covers \Winter\Docs\Classes\DocsManager
+ * @testdox The Documentation Manager (\Winter\Docs\Classes\DocsManager)
+ */
+class DocsManagerTest extends PluginTestCase
 {
     protected $docsManager;
 
@@ -11,9 +16,36 @@ class DocsManagerTest extends TestCase
     {
         parent::setUp();
 
+        // Get the plugin manager
+        $pluginManager = PluginManager::instance();
+
+        // Register the plugins to make features like file configuration available
+        $pluginManager->registerAll(true);
+
+        // Boot all the plugins to test with dependencies of this plugin
+        $pluginManager->bootAll(true);
+
+        // Boot this plugin
+        $this->runPluginRefreshCommand('Winter.Docs');
+
         $this->docsManager = DocsManager::instance();
     }
 
+    /**
+     * @covers \Winter\Docs\Classes\DocsManager::registerDocumentation()
+     * @covers \Winter\Docs\Classes\DocsManager::hasDocumentation()
+     * @testdox can register all docs provided by plugins and determine if a plugin has a given doc.
+     */
+    public function testRegistration()
+    {
+        // Should be able to see docs registered for this plugin at least.
+        $this->assertTrue($this->docsManager->hasDocumentation('Winter.Docs', 'guide'));
+    }
+
+    /**
+     * @covers \Winter\Docs\Classes\DocsManager::makeIdentifier()
+     * @testdox can make valid identifiers for docs.
+     */
     public function testMakeIdentifier()
     {
         $this->assertEquals(
@@ -37,6 +69,12 @@ class DocsManagerTest extends TestCase
         );
     }
 
+    /**
+     * @covers \Winter\Docs\Classes\DocsManager::addDocumentation()
+     * @covers \Winter\Docs\Classes\DocsManager::removeDocumentation()
+     * @covers \Winter\Docs\Classes\DocsManager::hasDocumentation()
+     * @testdox can manually add and remove documentation.
+     */
     public function testAddDocumentation()
     {
         $this->assertFalse($this->docsManager->hasDocumentation('Docs.Test', 'user'));

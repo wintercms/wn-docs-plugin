@@ -1,0 +1,15 @@
+<ul>
+    {% for item in items %}
+        <li>
+            {% if item.anchor %}
+                <a href="{{ item.anchor }}">{{ item.title }}</a>
+            {% else %}
+                <span>{{ item.title }}</span>
+            {% endif %}
+
+            {% if item.children %}
+                {% partial __SELF__ ~ '::toc-items' items=item.children %}
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>

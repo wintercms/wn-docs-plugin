@@ -1,0 +1,120 @@
+<ul class="table-of-contents">
+    {% if class.constants %}
+        <li>
+            <span>Constants</span>
+            <ul>
+                {% for constant in class.constants %}
+                    <li>
+                        <a href="#constant-{{ constant.name | slug }}">
+                            <span class="type">
+                                {{ constant.type }}
+                            </span>
+                            <span class="name">
+                                {{ constant.name }}
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </li>
+    {% endif %}
+    {% if class.properties %}
+        <li>
+            <span>Properties</span>
+            <ul>
+                {% for property in class.properties %}
+                    <li>
+                        <a href="#prop-{{ property.name | slug }}">
+                            <span class="type">
+                                {% if property.type is iterable %}
+                                    {{ property.type | join(' | ') }}
+                                {% else %}
+                                    {{ property.type }}
+                                {% endif %}
+                            </span>
+                            <span class="name">
+                                ${{ property.name }}
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </li>
+    {% endif %}
+    {% if class.methods %}
+        <li>
+            <span>Methods</span>
+            <ul>
+                {% for method in class.methods %}
+                    <li>
+                        <a href="#method-{{ method.name | slug }}">
+                            {% if method.visibility == 'public' %}
+                                <span class="public">
+                                    public
+                                </span>
+                            {% elseif method.visibility == 'protected' %}
+                                <span class="protected">
+                                    protected
+                                </span>
+                            {% else %}
+                                <span class="private">
+                                    private
+                                </span>
+                            {% endif %}
+
+                            <span class="name">
+                                {{ method.name }}()
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </li>
+    {% endif %}
+</ul>
+
+<div class="title">
+    {{ class.name }}
+</div>
+
+<div class="class-name">
+    {% if class.final %}
+        <span class="final">
+            final
+        </span>
+    {% else %}
+        <span class="abstract">
+            abstract
+        </span>
+    {% endif %}
+
+    <span class="class">
+        class
+    </span>
+
+    <span class="name">
+        {{ class.name }}
+    </span>
+
+    {% if class.extends %}
+        <span class="extends">
+            extends
+        </span>
+
+        <span class="extended-class">
+            {{ class.extends }}
+        </span>
+    {% endif %}
+</div>
+
+{% if class.docs.summary %}
+<div class="summary">
+    {{ class.docs.summary | raw }}
+</div>
+{% endif %}
+
+{% if class.docs.body %}
+<div class="description">
+    {{ class.docs.body | raw }}
+</div>
+{% endif %}

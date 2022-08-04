@@ -23,9 +23,18 @@ return [
         'finalizing' => 'Finalizing...',
         'success' => 'The documentation has been successfully updated.',
     ],
-    'content' => [
-        'intro' => 'Welcome to the documentation for Winter CMS. Please click on one of the links to the left to
-            get more information about using Winter CMS and its wealth of features. If you wish to get the most
-            up-to-date documentation, please use the button below.'
-    ]
+    'components' => [
+        'docsPage' => [
+            'name' => 'Documentation page',
+            'description' => 'Displays documentation pages',
+            'docId' => [
+                'title' => 'Documentation to display',
+                'placeholder' => 'Select a documentation',
+            ],
+            'pageSlug' => [
+                'title' => 'Page slug',
+                'description' => 'The page slug will be used to determine the documentation page.',
+            ],
+        ],
+    ],
 ];

@@ -1,9 +1,12 @@
 <?php namespace Winter\Docs\Classes;
 
-use ApplicationException;
-use Config;
 use Log;
+use Lang;
+use Config;
 use Validator;
+use ApplicationException;
+use Cms\Classes\Page;
+use Cms\Classes\Theme;
 use System\Classes\PluginManager;
 
 class DocsManager
@@ -16,7 +19,7 @@ class DocsManager
     /** @var array Registered documentation */
     protected $registered = [];
 
-    /** @var System\Classes\PluginManager Plugin manager instance */
+    /** @var \System\Classes\PluginManager Plugin manager instance */
     protected $pluginManager;
 
     /**
@@ -39,26 +42,98 @@ class DocsManager
     protected function registerDocumentation(): void
     {
         // Load documentation from plugins
-        foreach ($this->pluginManager->getPlugins() as $pluginCode => $pluginObj) {
-            if (!method_exists($pluginObj, 'registerDocumentation')) {
+        $documentation = $this->pluginManager->getRegistrationMethodValues('registerDocumentation');
+
+        foreach ($documentation as $pluginCode => $docs) {
+            if (!is_array($docs)) {
+                $errorMessage = sprintf(
+                    'The "registerDocumentation" method in plugin "%s" did not return an array.',
+                    [$pluginCode]
+                );
+
+                if (Config::get('app.debug', false)) {
+                    throw new ApplicationException($errorMessage);
+                }
+
+                Log::error($errorMessage);
                 continue;
             }
 
-            $pluginDocs = $pluginObj->registerDocumentation();
-
-            if (!is_array($pluginDocs)) {
-                throw new ApplicationException(
-                    sprintf(
-                        'The "registerDocumentation" method in plugin "%s" did not return an array.',
-                        [$pluginCode]
-                    )
-                );
-            }
-
-            foreach ($pluginDocs as $code => $doc) {
+            foreach ($docs as $code => $doc) {
                 $this->addDocumentation($pluginCode, $code, $doc);
             }
         }
+    }
+
+    /**
+     * Lists all available documentation.
+     *
+     * This will return an array of documentation details, with the following keys for each
+     * documentation:
+     *   - `id`: The identifier of the documentation
+     *   - `instance`: An instance of the `Documentation` class for the given documentation.
+     *   - `name`: The name of the documentation
+     *   - `type`: The type of documentation (one of `user`, `developer`, `api` or `events`)
+     *   - `pageUrl`: A URL to the page where this documentation can be viewed, if available.
+     *   - `sourceUrl`: A URL to the source repository for the documentation, if available.
+     *   - `plugin`: The plugin providing the documentation
+     *
+     * @return array
+     */
+    public function listDocumentation(): array
+    {
+        $docs = [];
+
+        foreach ($this->registered as $id => $doc) {
+            $instance = $this->getDocumentation($id);
+
+            // Find the page that this documentation is connected to
+            $theme = Theme::getActiveTheme();
+            $page = Page::listInTheme($theme)
+                ->withComponent('docsPage', function ($component) use ($id) {
+                    return $component->property('docId') === $id;
+                })
+                ->first();
+
+            $docs[] = [
+                'id' => $id,
+                'instance' => $instance,
+                'name' => $doc['name'],
+                'type' => $doc['type'],
+                'pageUrl' => ($page) ? Page::url($page->getFileName(), ['slug' => '']) : null,
+                'sourceUrl' => $instance->getRepositoryUrl(),
+                'plugin' => Lang::get($this->pluginManager
+                    ->findByIdentifier($doc['plugin'])
+                    ->pluginDetails()['name']),
+            ];
+        }
+
+        return $docs;
+    }
+
+    /**
+     * Gets a documentation instance by ID.
+     *
+     * @param string $id
+     * @return BaseDocumentation|null
+     */
+    public function getDocumentation(string $id): ?BaseDocumentation
+    {
+        if (!array_key_exists($id, $this->registered)) {
+            return null;
+        }
+
+        $doc = $this->registered[$id];
+
+        switch ($doc['type']) {
+            case 'user':
+            case 'developer':
+                return new MarkdownDocumentation($id, $doc);
+            case 'api':
+                return new PHPApiDocumentation($id, $doc);
+        }
+
+        return null;
     }
 
     /**
@@ -76,7 +151,8 @@ class DocsManager
             'name' => 'required',
             'type' => 'required|in:user,developer,api,events',
             'source' => 'required|in:local,remote',
-            'path' => 'required',
+            'path' => 'required_if:source,local',
+            'url' => 'required_if:source,remote',
         ], [
             'name' => 'winter.docs::lang.validation.docs.name',
             'type' => 'winter.docs::lang.validation.docs.type',
@@ -101,6 +177,7 @@ class DocsManager
         }
 
         $this->registered[$this->makeIdentifier($owner, $code)] = $config;
+        $this->registered[$this->makeIdentifier($owner, $code)]['plugin'] = $owner;
 
         return true;
     }

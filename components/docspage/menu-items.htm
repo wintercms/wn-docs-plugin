@@ -1,0 +1,21 @@
+<ul class="menu-depth-{{ depth }}">
+    {% for item in items %}
+        <li{% if item.active %} class="active"{% elseif item.childActive %} class="child-active"{% endif %}>
+            {% if item.path %}
+                {% if item.external %}
+                    <a href="{{ item.path }}" class="external-link"{% if item.path|slice(0, 1) != '/' and item.path|slice(0, 3) != '../' %} target="external"{% endif %}>
+                {% else %}
+                    <a href="{{ this.page.fileName | page({ slug: item.path }) }}">
+                {% endif %}
+                    {{ item.title }}
+                </a>
+            {% else %}
+                <span>{{ item.title }}</span>
+            {% endif %}
+
+            {% if item.children %}
+                {% partial __SELF__ ~ '::menu-items' items=item.children depth=(depth + 1) %}
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
