@@ -84,7 +84,6 @@ jobs:
         if: matrix.phpVersion == '8.0' && matrix.operatingSystem == 'ubuntu-latest'
         env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        working-directory: plugins/winter/docs
         run: |
             php artisan winter:test -p Winter.Docs --testdox --coverage-clover coverage.xml
             bash <(curl -s https://codecov.io/bash)
