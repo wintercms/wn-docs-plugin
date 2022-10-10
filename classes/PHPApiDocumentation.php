@@ -39,6 +39,11 @@ class PHPApiDocumentation extends BaseDocumentation
     protected TemplateWrapper $preparedTemplate;
 
     /**
+     * Prepared template for rendering event API docs.
+     */
+    protected TemplateWrapper $preparedEventTemplate;
+
+    /**
      * Page map.
      */
     protected array $pageMap = [];
@@ -52,6 +57,7 @@ class PHPApiDocumentation extends BaseDocumentation
 
         $this->sourcePaths = $config['sourcePaths'] ?? [];
         $this->template = $config['template'] ?? base_path('plugins/winter/docs/views/api-doc.twig');
+        $this->eventTemplate = $config['eventTemplate'] ?? base_path('plugins/winter/docs/views/api-event.twig');
     }
 
     /**
@@ -101,17 +107,21 @@ class PHPApiDocumentation extends BaseDocumentation
         $apiParser = new PHPApiParser($basePath, $this->sourcePaths, $this->ignoredPaths);
         $apiParser->parse();
         $classMap = $apiParser->getClassMap();
-        $events = $apiParser->getEvents();
-
-        print_r($events);
-        die();
+        $eventMap = $apiParser->getEventMap();
 
         // Prepare Twig template
         $twig = App::make('twig.environment');
         $this->preparedTemplate = $twig->createTemplate(File::get($this->template));
+        $this->preparedEventTemplate = $twig->createTemplate(File::get($this->eventTemplate));
 
         $nav = [];
         $this->processClassLevel($apiParser, $classMap, $nav);
+        if (count($eventMap)) {
+            $nav[] = [
+                'title' => 'Events',
+                'children' => $this->processEventLevel($apiParser, $eventMap),
+            ];
+        }
 
         // Create page map
         $this->getStorageDisk()->put(
@@ -173,12 +183,57 @@ class PHPApiDocumentation extends BaseDocumentation
     }
 
     /**
+     * Traverses the events parsed in the codebase and creates a nested map of events.
+     */
+    protected function processEventLevel(PHPApiParser $parser, array $eventMap, array &$eventNav = [], string $baseNamespace = ''): array
+    {
+        foreach ($eventMap as $key => $value) {
+            if (is_array($value)) {
+                $children = [];
+
+                $this->processEventLevel($parser, $value, $children, ltrim($baseNamespace . '/' . $key, '/'));
+                $eventNav[] = [
+                    'title' => $key,
+                    'children' => $children,
+                ];
+                continue;
+            }
+
+            $event = $parser->getEvent($value);
+
+            $navItem = [
+                'title' => $key,
+                'path' => 'events/' . $baseNamespace . '/' . $key,
+            ];
+
+            $this->pageMap['events/' . $baseNamespace . '/' . $key] = [
+                'path' => 'events/' . $baseNamespace . '/' . $key,
+                'fileName' => 'events/' . $baseNamespace . '/' . $key . '.htm',
+                'title' => $event['name'],
+            ];
+
+            // Create docs
+            $this->getStorageDisk()->put(
+                $this->getProcessedPath(ltrim('events/' . $baseNamespace . '/' . $key . '.htm')),
+                $this->prependEventFrontMatter($event, $this->preparedEventTemplate->render([
+                    'event' => $event,
+                ]))
+            );
+
+            $eventNav[] = $navItem;
+        }
+
+        return $eventNav;
+    }
+
+    /**
      * Adds index data as front matter to the generated documentation page.
      */
     protected function prependFrontMatter(array $class, string $template): string
     {
         $frontMatter = [
             'title' => $class['class'],
+            'type' => 'class',
             'methods' => array_map(function ($item) {
                 return $item['name'];
             }, $class['methods'] ?? []),
@@ -188,6 +243,24 @@ class PHPApiDocumentation extends BaseDocumentation
             'constants' => array_map(function ($item) {
                 return $item['name'];
             }, $class['constants'] ?? []),
+            'summary' => $class['docs']['summary'] ?? '',
+            'description' => $class['docs']['body'] ?? '',
+        ];
+
+        return '<script id="frontMatter" type="application/json">'
+            . json_encode($frontMatter)
+            . '</script>' . "\n"
+            . $template;
+    }
+
+    /**
+     * Adds index data as front matter to the generated event documentation page.
+     */
+    protected function prependEventFrontMatter(array $event, string $template): string
+    {
+        $frontMatter = [
+            'title' => $event['name'],
+            'type' => 'event',
             'summary' => $class['docs']['summary'] ?? '',
             'description' => $class['docs']['body'] ?? '',
         ];

@@ -12,7 +12,8 @@ class PHPApiPageIndex extends BasePageIndex
 
     public $fillable = [
         'slug',
-        'class',
+        'title',
+        'type',
         'methods',
         'properties',
         'constants',
@@ -22,7 +23,8 @@ class PHPApiPageIndex extends BasePageIndex
 
     public $recordSchema = [
         'slug' => 'string',
-        'class' => 'string',
+        'title' => 'string',
+        'type' => 'string',
         'methods' => 'text',
         'properties' => 'text',
         'constants' => 'text',
@@ -32,7 +34,8 @@ class PHPApiPageIndex extends BasePageIndex
 
     public $searchable = [
         'slug',
-        'class',
+        'title',
+        'type',
         'methods',
         'properties',
         'constants',
@@ -48,12 +51,13 @@ class PHPApiPageIndex extends BasePageIndex
 
             return [
                 'slug' => Str::slug(str_replace('/', '-', $page->getPath())),
-                'class' => $frontMatter['title'],
-                'methods' => json_encode($frontMatter['methods']),
-                'properties' => json_encode($frontMatter['properties']),
-                'constants' => json_encode($frontMatter['constants']),
-                'summary' => strip_tags($frontMatter['summary']),
-                'description' => strip_tags($frontMatter['description']),
+                'title' => $frontMatter['title'],
+                'type' => $frontMatter['type'],
+                'methods' => json_encode($frontMatter['methods'] ?? []),
+                'properties' => json_encode($frontMatter['properties'] ?? []),
+                'constants' => json_encode($frontMatter['constants'] ?? []),
+                'summary' => strip_tags($frontMatter['summary'] ?? ''),
+                'description' => strip_tags($frontMatter['description'] ?? ''),
             ];
         }, static::$pageList->getPages());
     }

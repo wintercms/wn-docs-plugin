@@ -59,10 +59,7 @@ class PHPApiParser
     /** A list of paths that could not be parsed. */
     protected array $failedPaths = [];
 
-    /**
-     * A list of classes, with each class containing an array of events found. The details of these events will be
-     * included in the class definitions.
-     */
+    /** A list of event names encountered in the codebase, containing information on all uses of events. */
     protected array $events = [];
 
     /** Factory instance for generating DocBlock reflections */
@@ -113,22 +110,22 @@ class PHPApiParser
                 continue;
             }
 
-            // Ensure that we are dealing with a single class, trait or interface
+            // Check if we are dealing with a class, trait or instance to pass through to the additional parsing steps.
+            // If the file is none of these (or multiple of these, for whatever reason), it will just be checked for events.
             $objects = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\Class_::class);
             $objects = array_merge($objects, $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\Trait_::class));
             $objects = array_merge($objects, $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\Interface_::class));
 
-            if (!count($objects)) {
-                $this->failedPaths[] = [
-                    'path' => $file,
-                    'error' => 'No object definition found.',
-                ];
-                continue;
-            } elseif (count($objects) > 1) {
-                $this->failedPaths[] = [
-                    'path' => $file,
-                    'error' => 'More than one object definition exists in this path.',
-                ];
+            if (!count($objects) || count($objects) > 1) {
+                // Find method calls that have comments for events
+                $eventDocBlocks = $nodeFinder->find($parsed, function (\PhpParser\Node $node) {
+                    return $node->getDocComment()
+                        && $this->isEventDocBlock($node->getDocComment());
+                });
+
+                if (count($eventDocBlocks)) {
+                    $this->parseFileEvents($file, $eventDocBlocks);
+                }
                 continue;
             }
 
@@ -148,7 +145,7 @@ class PHPApiParser
             $groupedUses = $nodeFinder->findInstanceOf($parsed, \PhpParser\Node\Stmt\GroupUse::class);
             $uses = $this->parseUseCases($singleUses, $groupedUses);
 
-            // Find method calls that have comments
+            // Find method calls that have comments for events
             $eventDocBlocks = $nodeFinder->find($parsed, function (\PhpParser\Node $node) {
                 return $node->getDocComment()
                     && $this->isEventDocBlock($node->getDocComment());
@@ -298,12 +295,71 @@ class PHPApiParser
      *
      * This should be run after `parse()`.
      *
-     * This array will contain a list of classes, with the name of the events encountered in the class. The actual
-     * event definitions will be found in the class definition.
+     * This array will contain a list of events encountered throughout the codebase.
      *
      * @return array
      */
     public function getEvents()
+    {
+        $events = array_keys($this->events);
+        sort($events, SORT_STRING);
+        return $events;
+    }
+
+    /**
+     * Gets the details of a single event.
+     *
+     * This should be run after `parse()`.
+     *
+     * @param string $event
+     * @return array|null
+     */
+    public function getEvent(string $event)
+    {
+        if (!array_key_exists($event, $this->events)) {
+            return null;
+        }
+
+        return $this->events[$event];
+    }
+
+    /**
+     * Get all events encountered in this codebase, grouped to logical "namespaces".
+     *
+     * For example, an event called `page.view.template` would be formatted as:
+     *
+     * ```text
+     *   page => [
+     *       view => [
+     *           template => 'page.view.template'
+     *       ]
+     *   ]
+     * ```
+     */
+    public function getEventMap()
+    {
+        $map = [];
+
+        foreach ($this->getEvents() as $eventName) {
+            [$namespace, $event] = preg_split('/\.(.*)$/', $eventName, 2);
+
+            if (!Arr::has($map, $namespace)) {
+                Arr::set($map, $namespace, []);
+            }
+            Arr::set($map, $eventName, $eventName);
+        }
+
+        return $map;
+    }
+
+    /**
+     * Get all events encountered in this codebase, linked to classes.
+     *
+     * This should be run after `parse()`.
+     *
+     * @return array
+     */
+    public function getEventDetails()
     {
         return $this->events;
     }
@@ -646,7 +702,7 @@ class PHPApiParser
      */
     protected function parseClassEvents(string $fqClass, string $namespace, array $uses = [], array $eventDocBlocks = [])
     {
-        return array_filter(array_map(function ($node) use ($class, $namespace, $uses) {
+        return array_filter(array_map(function ($node) use ($fqClass, $namespace, $uses) {
             $event = $this->parseEvent($node->getDocComment());
 
             if (is_null($event)) {
@@ -654,14 +710,94 @@ class PHPApiParser
             }
 
             $docs = $this->parseDocBlock($event['docBlock'], $namespace, $uses);
+            $lines = [$node->getDocComment()->getStartLine(), $node->getDocComment()->getEndLine()];
+
+            // Make a record of the event being used in this class.
+            if (!isset($this->events[$event['name']])) {
+                $this->events[$event['name']] = [
+                    'name' => $event['name'],
+                    'params' => $this->processEventParams($docs, $namespace, $uses),
+                    'docs' => $docs,
+                    'triggers' => [],
+                ];
+            }
+
+            // Only add this trigger once
+            foreach ($this->events[$event['name']]['triggers'] as $trigger) {
+                if (isset($trigger['reference']['type']['class']) && $trigger['reference']['type']['class'] === $fqClass) {
+                    return null;
+                }
+            }
+
+            $this->events[$event['name']]['triggers'][] = [
+                'reference' =>             [
+                    'definition' => 'reference',
+                    'type' => [
+                        'name' => $fqClass,
+                        'class' => $fqClass,
+                        'linked' => false,
+                    ],
+                ],
+                'lines' => $lines,
+            ];
 
             return [
-                'name' => $event['name'],
-                'params' => $this->processEventParams($docs, $namespace, $uses),
-                'docs' => $docs,
-                'lines' => [$node->getDocComment()->getStartLine(), $node->getDocComment()->getEndLine()],
+                'reference' => [
+                    'definition' => 'event',
+                    'type' => [
+                        'name' => $event['name'],
+                        'linked' => false,
+                    ],
+                ],
+                'lines' => $lines,
             ];
         }, $eventDocBlocks));
+    }
+
+    /**
+     * Parse the given file for event docblocks.
+     *
+     * @param string $path
+     * @param array $eventDocBlocks
+     * @return array
+     */
+    protected function parseFileEvents(string $path, array $eventDocBlocks)
+    {
+        array_map(function ($node) use ($path) {
+            $event = $this->parseEvent($node->getDocComment());
+
+            if (is_null($event)) {
+                return null;
+            }
+
+            $docs = $this->parseDocBlock($event['docBlock'], '', []);
+            $lines = [$node->getDocComment()->getStartLine(), $node->getDocComment()->getEndLine()];
+
+            // Make a record of the event being used in this class.
+            if (!isset($this->events[$event['name']])) {
+                $this->events[$event['name']] = [
+                    'name' => $event['name'],
+                    'params' => $this->processEventParams($docs, '', []),
+                    'docs' => $docs,
+                    'triggers' => [],
+                ];
+            }
+
+            // Only add this trigger once
+            foreach ($this->events[$event['name']]['triggers'] as $trigger) {
+                if (isset($trigger['reference']['path']) && $trigger['reference']['path'] === str_replace($this->basePath, '', $path)) {
+                    return;
+                }
+            }
+
+            $this->events[$event['name']]['triggers'][] = [
+                'reference' =>             [
+                    'definition' => 'path',
+                    'path' => str_replace($this->basePath, '', $path),
+                ],
+                'lines' => $lines,
+            ];
+        }, $eventDocBlocks);
     }
 
     /**
@@ -820,7 +956,7 @@ class PHPApiParser
         $text = $docBlock->getReformattedText();
 
         // Get event name before stripping out tag
-        preg_match('/^( +\* |\/\*\* )@event +([^ ]+)/m', $text, $matches);
+        preg_match('/^( +\* |\/\*\* )@event +([^ \n\r]+)/m', $text, $matches);
         $eventName = $matches[2] ?? null;
 
         if (is_null($eventName)) {
@@ -1788,6 +1924,49 @@ class PHPApiParser
             }
 
             $this->sortDefinitions($class);
+        }
+
+        // Link class references in events
+        foreach ($this->events as $name => &$event) {
+            if (!empty($event['params'])) {
+                foreach ($event['params'] as &$param) {
+                    if ($param['type']['definition'] === 'union') {
+                        foreach ($param['type']['types'] as &$type) {
+                            if ($type['definition'] === 'reference') {
+                                if (isset($this->classes[$type['type']['class']])) {
+                                    $type['type']['linked'] = true;
+                                    continue;
+                                }
+                            }
+                        }
+                    } elseif ($param['type']['definition'] === 'reference') {
+                        if (isset($this->classes[$param['type']['type']['class']])) {
+                            $param['type']['type']['linked'] = true;
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            if (!empty($event['triggers'])) {
+                foreach ($event['triggers'] as &$trigger) {
+                    if ($trigger['reference']['definition'] === 'union') {
+                        foreach ($trigger['reference']['types'] as &$type) {
+                            if ($type['definition'] === 'reference') {
+                                if (isset($this->classes[$type['reference']['class']])) {
+                                    $type['reference']['linked'] = true;
+                                    continue;
+                                }
+                            }
+                        }
+                    } elseif ($trigger['reference']['definition'] === 'reference') {
+                        if (isset($this->classes[$trigger['reference']['type']['class']])) {
+                            $trigger['reference']['type']['linked'] = true;
+                            continue;
+                        }
+                    }
+                }
+            }
         }
     }
 

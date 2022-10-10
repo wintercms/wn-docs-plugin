@@ -1,0 +1,15 @@
+<div class="title">
+    {{ event.name }}
+</div>
+
+{% if event.docs.summary %}
+<div class="summary">
+    {{ event.docs.summary | raw }}
+</div>
+{% endif %}
+
+{% if event.docs.body %}
+<div class="description">
+    {{ event.docs.body | raw }}
+</div>
+{% endif %}

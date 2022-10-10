@@ -126,10 +126,9 @@ class DocsManager
         $doc = $this->registered[$id];
 
         switch ($doc['type']) {
-            case 'user':
-            case 'developer':
+            case 'md':
                 return new MarkdownDocumentation($id, $doc);
-            case 'api':
+            case 'php':
                 return new PHPApiDocumentation($id, $doc);
         }
 
@@ -149,15 +148,12 @@ class DocsManager
         // Validate documentation
         $validator = Validator::make($config, [
             'name' => 'required',
-            'type' => 'required|in:user,developer,api,events',
-            'source' => 'required|in:local,remote',
-            'path' => 'required_if:source,local',
-            'url' => 'required_if:source,remote',
+            'type' => 'required|in:md,php',
+            'source' => 'required|string',
         ], [
-            'name' => 'winter.docs::lang.validation.docs.name',
-            'type' => 'winter.docs::lang.validation.docs.type',
-            'source' => 'winter.docs::lang.validation.docs.source',
-            'path' => 'winter.docs::lang.validation.docs.path',
+            'name' => 'winter.docs::validation.docs.name',
+            'type' => 'winter.docs::validation.docs.type',
+            'source' => 'winter.docs::validation.docs.source',
         ]);
 
         if ($validator->fails()) {
