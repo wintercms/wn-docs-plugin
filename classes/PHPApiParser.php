@@ -937,6 +937,19 @@ class PHPApiParser
             }
         }
 
+        // Find local event definitions
+        foreach ($docBlock->getTags() as $tag) {
+            if ($tag instanceof Generic && $tag->getName() === 'local-event') {
+                $localEvent = explode(' ', $tag->getDescription()->render(), 3);
+
+                $details['localEvent'] = [
+                    'var' => $localEvent[0],
+                    'event' => $localEvent[1],
+                    'description' => $localEvent[2] ?? 'Locally'
+                ];
+            }
+        }
+
         return array_filter($details, function ($item, $key) {
             if (in_array($key, ['summary', 'body'])) {
                 return !empty(trim($item));
