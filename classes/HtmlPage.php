@@ -167,12 +167,12 @@ class HtmlPage implements Page
 
                     if (!is_null($linkNode)) {
                         $navItem = [
-                            'title' => $linkNode->textContent,
+                            'title' => utf8_decode($linkNode->textContent),
                             'anchor' => $linkNode->attributes->getNamedItem('href')->value,
                         ];
                     } else {
                         $navItem = [
-                            'title' => $spanNode->textContent,
+                            'title' => utf8_decode($spanNode->textContent),
                         ];
                     }
 
