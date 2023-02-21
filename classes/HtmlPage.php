@@ -81,7 +81,7 @@ class HtmlPage implements Page
             libxml_use_internal_errors(true);
 
             $dom = new \DOMDocument('1.0', 'UTF-8');
-            //Fix the garbled code in different languages
+            // Ensure HTML is read as UTF-8
             $dom->loadHTML('<!DOCTYPE html><meta charset="UTF-8">' . $content);
             $body = $dom->getElementsByTagName('body');
 
