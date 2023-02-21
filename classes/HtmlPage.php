@@ -81,7 +81,8 @@ class HtmlPage implements Page
             libxml_use_internal_errors(true);
 
             $dom = new \DOMDocument('1.0', 'UTF-8');
-            $dom->loadHTML($content);
+            // Ensure HTML is read as UTF-8
+            $dom->loadHTML('<!DOCTYPE html><meta charset="UTF-8">' . $content);
             $body = $dom->getElementsByTagName('body');
 
             if ($body->length >= 1) {
@@ -123,7 +124,7 @@ class HtmlPage implements Page
                 }
             }
 
-            $this->content = utf8_decode($dom->saveHTML($body));
+            $this->content = $dom->saveHTML($body);
         } else {
             $this->navigation = [];
             $this->content = $content;
