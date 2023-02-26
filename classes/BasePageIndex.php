@@ -124,4 +124,14 @@ class BasePageIndex extends Model
         $class = str_replace('\\', '', static::class);
         return $this->arraySourceGetDbDir() . '/docs-' . Str::slug(str_replace('.', '-', static::$pageList->getDocsIdentifier())) . '.sqlite';
     }
+    
+    /**
+     * Get the table associated with the model.
+     *
+     * @return string
+     */
+    public function getTable()
+    {
+        return $this->table ?? str_replace('.', '_', static::$pageList->getDocsIdentifier());
+    }
 }
