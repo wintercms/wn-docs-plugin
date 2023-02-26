@@ -92,11 +92,13 @@ class Plugin extends PluginBase
                 'name' => $doc['name'],
                 'model' => function () use ($doc) {
                     if ($doc['instance'] instanceof MarkdownDocumentation) {
+                        MarkdownPageIndex::clearBootedModels();
                         MarkdownPageIndex::setPageList($doc['instance']->getPageList());
 
                         return new MarkdownPageIndex();
                     }
 
+                    PHPApiPageIndex::clearBootedModels();
                     PHPApiPageIndex::setPageList($doc['instance']->getPageList());
 
                     return new PHPApiPageIndex();
