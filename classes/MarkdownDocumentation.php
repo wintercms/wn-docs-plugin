@@ -6,6 +6,7 @@ use File;
 use Yaml;
 use Config;
 use League\CommonMark\Environment\Environment;
+use League\CommonMark\Extension\Attributes\AttributesExtension;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\CommonMark\Node\Block\Heading;
@@ -192,26 +193,74 @@ class MarkdownDocumentation extends BaseDocumentation
             $title = Str::title($fileName);
         }
 
-        // Find all links and images, and correct the URLs
+        // Find all links and correct the URLs
         $matching = (new Query)
             ->where(Query::type(Link::class))
-            ->orWhere(Query::type(Image::class))
             ->findAll($markdownAst);
 
+        /** @var Link */
         foreach ($matching as $node) {
-            if ($node instanceof Link) {
-                $url = $node->getUrl();
+            $url = $node->getUrl();
 
-                // Skip hashbang or external links
-                if (starts_with($url, ['#', 'http://', 'https://'])) {
-                    continue;
-                }
-
-                // Remove .md extension from internal links
-                if (preg_match('/\.md($|[#?])/', $url)) {
-                    $node->setUrl(preg_replace('/(\.md)($|[#?])/', '$2', $url));
-                }
+            // Skip hash-bang or external links
+            if (starts_with($url, ['#', 'http://', 'https://'])) {
+                continue;
             }
+
+            // Remove .md extension from internal links
+            if (preg_match('/\.md($|[#?])/', $url)) {
+                $node->setUrl(preg_replace('/(\.md)($|[#?])/', '$2', $url));
+            }
+        }
+
+        // Find all image assets and store them in the asset folder with correct paths
+        $matching = (new Query)
+            ->where(Query::type(Image::class))
+            ->findAll($markdownAst);
+
+        /** @var Image */
+        foreach ($matching as $node) {
+            $url = $node->getUrl();
+
+            // Skip hash-bang or external images
+            if (starts_with($url, ['#', 'http://', 'https://'])) {
+                continue;
+            }
+
+            // Find source image
+            if (str_starts_with($url, '/')) {
+                $assetPath = $this->getProcessPath($url);
+            } else {
+                $assetPath = $this->getProcessPath($directory . $url);
+            }
+            $source = realpath($assetPath);
+
+            // Skip missing images
+            if ($source === false) {
+                continue;
+            }
+
+            // Check that source is actually an image file
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($source);
+
+            if (!str_starts_with($mime, 'image/')) {
+                continue;
+            }
+
+            // Copy source asset to processed files folder and rewrite URL
+            $hash = File::hash($source);
+            $filename = File::basename($source);
+            $splitDir = chunk_split(substr($hash, 0, 9), 3, '/');
+
+            if (!$this->getStorageDisk()->exists($this->getProcessedAssetsPath($splitDir . '/' . $filename))) {
+                $this->getStorageDisk()->put(
+                    $this->getProcessedAssetsPath($splitDir . '/' . $filename),
+                    File::get($source),
+                );
+            }
+
+            $node->setUrl($this->getStorageDisk()->url($this->getProcessedAssetsPath($splitDir . '/' . $filename)));
         }
 
         // Render the document
@@ -292,6 +341,12 @@ class MarkdownDocumentation extends BaseDocumentation
                         if ($node->firstChild() instanceof Code) {
                             return 'code-link';
                         }
+                        if (str_starts_with($node->getUrl(), 'mailto:')) {
+                            return 'external-link email-link';
+                        }
+                        if (str_starts_with($node->getUrl(), 'tel:')) {
+                            return 'external-link phone-link';
+                        }
                         return null;
                     },
                 ],
@@ -325,6 +380,7 @@ class MarkdownDocumentation extends BaseDocumentation
 
         $environment = new Environment($config);
         $environment->addExtension(new CommonMarkCoreExtension());
+        $environment->addExtension(new AttributesExtension());
         $environment->addExtension(new AutolinkExtension());
         $environment->addExtension(new DefaultAttributesExtension());
         $environment->addExtension(new DisallowedRawHtmlExtension());

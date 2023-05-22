@@ -12,7 +12,6 @@ use RecursiveDirectoryIterator;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Winter\Docs\Classes\Contracts\Documentation;
 use Winter\Docs\Classes\Contracts\Page;
-use Winter\Docs\Classes\Contracts\PageList;
 use Winter\Storm\Filesystem\Zip;
 
 abstract class BaseDocumentation implements Documentation
@@ -448,6 +447,23 @@ abstract class BaseDocumentation implements Documentation
     public function getProcessedPath(string $suffix = ''): string
     {
         $path = Config::get('winter.docs::storage.processedPath', 'docs/processed') . '/' . $this->getPathIdentifier();
+
+        // Normalise suffix path
+        if (!empty($suffix)) {
+            $path .= '/' . (ltrim(str_replace(['\\', '/'], '/', $suffix), '/'));
+        }
+
+        return $path;
+    }
+
+    /**
+     * Provides the path where processed assets for the documentation will be stored.
+     *
+     * This path will be used on the storage disk.
+     */
+    public function getProcessedAssetsPath(string $suffix = ''): string
+    {
+        $path = $this->getProcessedPath('/_assets');
 
         // Normalise suffix path
         if (!empty($suffix)) {
