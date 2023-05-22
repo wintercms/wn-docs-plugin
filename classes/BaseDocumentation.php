@@ -336,7 +336,7 @@ abstract class BaseDocumentation implements Documentation
     /**
      * @inheritDoc
      */
-    abstract public function getPageList(): PageList;
+    abstract public function getPageList(): BasePageList;
 
     /**
      * @inheritDoc

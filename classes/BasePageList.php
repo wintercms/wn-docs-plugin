@@ -6,7 +6,7 @@ use System\Classes\PluginManager;
 use Winter\Docs\Classes\Contracts\Page;
 use Winter\Docs\Classes\Contracts\PageList;
 
-abstract class BasePageList implements PageList
+abstract class BasePageList implements PageList, \IteratorAggregate, \ArrayAccess, \Countable
 {
     /**
      * The root page of the documentation.
@@ -29,7 +29,7 @@ abstract class BasePageList implements PageList
     protected array $navigation = [];
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function getPages(): array
     {
@@ -37,7 +37,7 @@ abstract class BasePageList implements PageList
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function getPage(string $path): ?Page
     {
@@ -51,7 +51,7 @@ abstract class BasePageList implements PageList
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function setActivePage(Page $page): void
     {
@@ -97,7 +97,7 @@ abstract class BasePageList implements PageList
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function getRootPage(): Page
     {
@@ -105,7 +105,7 @@ abstract class BasePageList implements PageList
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function nextPage(Page $page): ?Page
     {
@@ -113,7 +113,7 @@ abstract class BasePageList implements PageList
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function previousPage(Page $page): ?Page
     {
@@ -121,7 +121,7 @@ abstract class BasePageList implements PageList
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function getNavigation(): array
     {
@@ -129,7 +129,7 @@ abstract class BasePageList implements PageList
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function search(string $query): array
     {
@@ -137,7 +137,7 @@ abstract class BasePageList implements PageList
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function isSearchable(): bool
     {
@@ -146,15 +146,67 @@ abstract class BasePageList implements PageList
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     abstract public function index(): void;
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function getDocsIdentifier(): string
     {
         return $this->docs->getIdentifier();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getIterator(): \Traversable
+    {
+        return new \ArrayIterator($this->getPages());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function offsetExists($offset): bool
+    {
+        return array_key_exists($offset, $this->pages);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @return Page|null The page, or null if it does not exist.
+     */
+    public function offsetGet($offset): ?Page
+    {
+        return $this->getPage($offset);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @ignore PageLists are read-only
+     */
+    public function offsetSet($offset, $value): void
+    {
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @ignore PageLists are read-only
+     */
+    public function offsetUnset($offset): void
+    {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function count(): int
+    {
+        return count($this->pages);
     }
 }

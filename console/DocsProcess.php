@@ -64,6 +64,8 @@ class DocsProcess extends Command
         $doc->resetState();
 
         $pageList = $doc->getPageList();
+        $this->line(' - Processed ' . count($pageList) . ' page(s)');
+
         if ($pageList->isSearchable()) {
             $this->line(' - Indexing documentation');
             $pageList->index();

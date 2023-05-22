@@ -5,7 +5,6 @@ namespace Winter\Docs\Classes;
 use File;
 use Illuminate\Support\Facades\App;
 use Twig\TemplateWrapper;
-use Winter\Docs\Classes\Contracts\PageList as PageListContact;
 use Winter\Storm\Exception\ApplicationException;
 
 /**
@@ -21,7 +20,7 @@ class PHPApiDocumentation extends BaseDocumentation
     /**
      * The page list instance.
      */
-    protected ?PageListContact $pageList = null;
+    protected ?BasePageList $pageList = null;
 
     /**
      * Paths to collate source APIs from.
@@ -64,10 +63,8 @@ class PHPApiDocumentation extends BaseDocumentation
      * Gets the page list instance.
      *
      * The page list instance is used for navigation and searching documentation.
-     *
-     * @return PageListContact
      */
-    public function getPageList(): PageListContact
+    public function getPageList(): BasePageList
     {
         if (!$this->isProcessed()) {
             throw new ApplicationException(

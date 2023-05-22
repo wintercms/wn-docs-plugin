@@ -26,7 +26,6 @@ use League\CommonMark\Node\Inline\Text;
 use League\CommonMark\Node\Query;
 use League\CommonMark\Parser\MarkdownParser;
 use League\CommonMark\Renderer\HtmlRenderer;
-use Winter\Docs\Classes\Contracts\PageList as PageListContact;
 use Winter\Storm\Exception\ApplicationException;
 use Winter\Storm\Support\Str;
 
@@ -49,7 +48,7 @@ class MarkdownDocumentation extends BaseDocumentation
     /**
      * The page list instance.
      */
-    protected ?PageListContact $pageList = null;
+    protected ?BasePageList $pageList = null;
 
     /**
      * The CommonMark environment for manipulating and rendering Markdown docs.
@@ -70,10 +69,8 @@ class MarkdownDocumentation extends BaseDocumentation
      * Gets the page list instance.
      *
      * The page list instance is used for navigation and searching documentation.
-     *
-     * @return PageListContact
      */
-    public function getPageList(): PageListContact
+    public function getPageList(): BasePageList
     {
         if (!$this->isProcessed()) {
             throw new ApplicationException(
