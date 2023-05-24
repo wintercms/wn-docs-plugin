@@ -47,6 +47,12 @@ abstract class BaseDocumentation implements Documentation
     protected ?string $url = null;
 
     /**
+     * A token to provide when downloading the source documentation from a URL, if the documentation is within a
+     * private repository.
+     */
+    protected ?string $token = null;
+
+    /**
      * The URL to the source repository for this documentation.
      */
     protected ?string $repositoryUrl = null;
@@ -57,9 +63,10 @@ abstract class BaseDocumentation implements Documentation
     protected ?string $repositoryEditUrl = null;
 
     /**
-     * The subfolder within the ZIP file in which this documentation is stored.
+     * The subfolder within the ZIP file in which this documentation is stored. If this is `true`, the ZIP file will
+     * be extracted as long as one folder exists within it, regardless of name.
      */
-    protected ?string $zipFolder = null;
+    protected string|bool|null $zipFolder = null;
 
     /**
      * Is this documentation available?
@@ -98,6 +105,7 @@ abstract class BaseDocumentation implements Documentation
         $this->source = $config['source'];
         $this->path = $config['path'] ?? null;
         $this->url = $config['url'] ?? null;
+        $this->token = $config['token'] ?? null;
         $this->zipFolder = $config['zipFolder'] ?? '';
         $this->ignoredPaths = $config['ignorePaths'] ?? [];
         $this->repositoryUrl = $config['repository']['url'] ?? null;
@@ -190,15 +198,19 @@ abstract class BaseDocumentation implements Documentation
      * Downloads a remote ZIP file for the documentation.
      *
      * The downloaded file will be placed at the expected location and extracted for processing
+     *
+     * A token may be optionally provided, if the token is not available in the config.
      */
-    public function download(): void
+    public function download(?string $token = null): void
     {
         // Local sources do not need to be downloaded
         if (!$this->isRemote()) {
             return;
         }
 
-        if (!$this->isRemoteAvailable()) {
+        $token ??= $this->token;
+
+        if (!$this->isRemoteAvailable($token)) {
             throw new ApplicationException(
                 sprintf(
                     'Could not retrieve the documentation for "%s" from the remote source "%s"',
@@ -209,13 +221,19 @@ abstract class BaseDocumentation implements Documentation
         }
 
         // Create temporary location
-        if (!File::exists($this->getDownloadPath())) {
-            File::makeDirectory($this->getDownloadPath(), 0777, true);
+        if (File::exists($this->getDownloadPath())) {
+            File::deleteDirectory($this->getDownloadPath());
         }
+        File::makeDirectory($this->getDownloadPath(), 0777, true);
 
         // Download ZIP file
-        $http = Http::get($this->url, function ($http) {
+        $http = Http::get($this->url, function ($http) use ($token) {
+            $http->header('User-Agent', 'Winter CMS (https://wintercms.com)');
             $http->toFile($this->getDownloadPath('archive.zip'));
+
+            if (!empty($token)) {
+                $http->header('Authorization', 'token ' . $token);
+            }
         });
 
         if (!$http->ok) {
@@ -272,6 +290,28 @@ abstract class BaseDocumentation implements Documentation
         $zip->open($this->getDownloadPath('archive.zip'));
         $toExtract = null;
 
+        if ($this->zipFolder === true) {
+            $folders = [];
+
+            // Find if there's only one folder
+            for ($i = 0; $i < $zip->numFiles; ++$i) {
+                $stats = $zip->statIndex($i);
+
+                if (str_ends_with($stats['name'], '/') && substr_count($stats['name'], '/') === 1 && $stats['size'] === 0) {
+                    $folders[] = $stats['name'];
+                    continue;
+                }
+            }
+
+            if (count($folders) !== 1) {
+                throw new ApplicationException(
+                    'We could not determine the correct Zip folder to extract. Please specify a specific Zip folder.',
+                );
+            }
+
+            $this->zipFolder = rtrim($folders[0], '/');
+        }
+
         if (!empty($this->zipFolder)) {
             $toExtract = [];
 
@@ -288,20 +328,21 @@ abstract class BaseDocumentation implements Documentation
         $zip->extractTo($this->getDownloadPath('extracted'), $toExtract);
 
         // Move remaining files into location
-        $dir = new DirectoryIterator($this->getDownloadPath('extracted/' . $this->zipFolder));
+        $extractPath = $this->getDownloadPath('extracted/' . $this->zipFolder);
+        $dir = new DirectoryIterator($extractPath);
 
         foreach ($dir as $item) {
             if ($item->isDot()) {
                 continue;
             }
 
-            $relativePath = str_replace($this->getDownloadPath('extracted/' . $this->zipFolder . '/'), '', $item->getPathname());
+            $relativePath = str_replace($extractPath . '/', '', $item->getPathname());
 
             rename($item->getPathname(), $this->getDownloadPath('collated/' . $relativePath));
         }
 
         // Remove ZIP folder
-        File::deleteDirectory($this->getDownloadPath('extracted/' . $this->zipFolder));
+        File::deleteDirectory($extractPath);
 
         // Remove ZIP file
         File::delete($this->getDownloadPath('archive.zip'));
@@ -377,9 +418,17 @@ abstract class BaseDocumentation implements Documentation
     /**
      * Checks if a remotely-sourced documentation ZIP file is available.
      */
-    protected function isRemoteAvailable(): bool
+    protected function isRemoteAvailable(?string $token = null): bool
     {
-        return Http::head($this->url)->ok;
+        $token ??= $this->token;
+
+        return Http::head($this->url, function ($http) use ($token) {
+            $http->header('User-Agent', 'Winter CMS (https://wintercms.com)');
+
+            if (!empty($token)) {
+                $http->header('Authorization', 'token ' . $token);
+            }
+        })->ok;
     }
 
     /**
@@ -395,6 +444,9 @@ abstract class BaseDocumentation implements Documentation
     {
         if ($this->isRemote()) {
             $path = $this->getDownloadPath('collated');
+            if (!empty($this->path)) {
+                $path .= '/' . trim($this->path, '/');
+            }
             if (!empty($suffix)) {
                 $path .= '/' . (ltrim(str_replace(['\\', '/'], '/', $suffix), '/'));
             }

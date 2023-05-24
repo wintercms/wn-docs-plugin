@@ -18,7 +18,8 @@ class DocsProcess extends Command
      * @var string
      */
     protected $signature = 'docs:process
-        {id : The identifier of the documentation to process}';
+        {id : The identifier of the documentation to process}
+        {--t|token= : An authorization token to use when downloading the documentation}';
 
     /**
      * The console command description.
@@ -50,7 +51,7 @@ class DocsProcess extends Command
         // Download documentation
         if ($doc->isRemote()) {
             $this->line(' - Downloading documentation');
-            $doc->download();
+            $doc->download($this->option('token'));
 
             $this->line(' - Extracting documentation');
             $doc->extract();
