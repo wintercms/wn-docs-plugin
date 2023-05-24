@@ -76,7 +76,7 @@ class Plugin extends PluginBase
 
         // Extend mirror paths to mirror assets
         Event::listen('system.console.mirror.extendPaths', function ($paths) {
-            $paths->directories = array_merge($paths->directories, [
+            $paths->wildcards = array_merge($paths->wildcards, [
                 'storage/app/docs/processed/*/_assets',
             ]);
         });
