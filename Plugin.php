@@ -1,4 +1,6 @@
-<?php namespace Winter\Docs;
+<?php
+
+namespace Winter\Docs;
 
 use Backend;
 use Cms\Classes\Page;
@@ -10,9 +12,21 @@ use Winter\Docs\Classes\MarkdownPageIndex;
 use Winter\Docs\Classes\PHPApiPageIndex;
 use Winter\Storm\Support\Str;
 
+/**
+ * Docs plugin.
+ *
+ * Comprehensive documentation suite for Winter CMS. Allows for the quick generation of docs from Markdown, or a PHP
+ * API.
+ *
+ * @author Ben Thomson <git@alfreido.com>
+ * @package winter/wn-docs-plugin
+ */
 class Plugin extends PluginBase
 {
-    public function pluginDetails()
+    /**
+     * {@inheritDoc}
+     */
+    public function pluginDetails(): array
     {
         return [
             'name'        => 'winter.docs::lang.plugin.name',
@@ -25,11 +39,9 @@ class Plugin extends PluginBase
     }
 
     /**
-     * Registers back-end quick actions for this plugin.
-     *
-     * @return array
+     * {@inheritDoc}
      */
-    public function registerQuickActions()
+    public function registerQuickActions(): array
     {
         return [
             'help' => [
@@ -41,9 +53,9 @@ class Plugin extends PluginBase
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
-    public function registerComponents()
+    public function registerComponents(): array
     {
         return [
             \Winter\Docs\Components\DocsPage::class => 'docsPage',
@@ -52,21 +64,20 @@ class Plugin extends PluginBase
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
-    public function boot()
+    public function boot(): void
     {
         if ($this->app->runningInConsole()) {
             $this->registerCommands();
+            $this->registerPublishedConfig();
         }
     }
 
     /**
      * Register commands.
-     *
-     * @return void
      */
-    protected function registerCommands()
+    protected function registerCommands(): void
     {
         $this->commands([
             \Winter\Docs\Console\DocsList::class,
@@ -74,7 +85,28 @@ class Plugin extends PluginBase
         ]);
     }
 
-    public function registerSearchHandlers()
+
+    /**
+     * Register published configurations.
+     */
+    protected function registerPublishedConfig(): void
+    {
+        $this->publishes([
+            __DIR__ . '/config/storage.php' => implode(DIRECTORY_SEPARATOR, [
+                $this->app->configPath(),
+                'winter',
+                'docs',
+                'storage.php'
+            ])
+        ]);
+    }
+
+    /**
+     * Register search handlers when the Winter.Search plugin is installed.
+     *
+     * These search handlers automatically allow searching of any registered and processed docs.
+     */
+    public function registerSearchHandlers(): array
     {
         $handlers = [];
         $docs = DocsManager::instance()->listDocumentation();

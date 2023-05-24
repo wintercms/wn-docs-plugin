@@ -1,5 +1,6 @@
 <?php
 
+// Register docs route
 Route::group([
     'prefix' => Config::get('cms.backendUri', 'backend') . '/docs',
     'middleware' => 'web'

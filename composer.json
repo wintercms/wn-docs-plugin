@@ -9,7 +9,7 @@
         {
             "name": "Ben Thomson",
             "email": "git@alfreido.com",
-            "role": "Maintainer"
+            "role": "Author / Maintainer"
         },
         {
             "name": "Winter CMS Maintainers",
@@ -29,6 +29,10 @@
         "phpdocumentor/reflection-docblock": "^5.2.2"
     },
     "extra": {
-        "installer-name": "docs"
+        "installer-name": "docs",
+        "winter": {
+            "name": "Docs",
+            "categories": ["Documentation", "Content"]
+        }
     }
 }
