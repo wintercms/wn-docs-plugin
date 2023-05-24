@@ -2,6 +2,7 @@
 
 namespace Winter\Docs;
 
+use Event;
 use Backend;
 use Cms\Classes\Page;
 use Cms\Classes\Theme;
@@ -72,6 +73,13 @@ class Plugin extends PluginBase
             $this->registerCommands();
             $this->registerPublishedConfig();
         }
+
+        // Extend mirror paths to mirror assets
+        Event::listen('system.console.mirror.extendPaths', function ($paths) {
+            $paths->directories = array_merge($paths->directories, [
+                'storage/app/docs/processed/*/_assets',
+            ]);
+        });
     }
 
     /**
