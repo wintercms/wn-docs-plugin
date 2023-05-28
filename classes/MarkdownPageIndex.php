@@ -11,13 +11,19 @@ class MarkdownPageIndex extends BasePageIndex
     ];
 
     public $fillable = [
+        'group_1',
+        'group_2',
+        'group_3',
+        'title',
         'slug',
         'path',
-        'title',
         'content',
     ];
 
     public $recordSchema = [
+        'group_1' => 'string',
+        'group_2' => 'string',
+        'group_3' => 'string',
         'slug' => 'string',
         'path' => 'string',
         'title' => 'string',
@@ -25,24 +31,44 @@ class MarkdownPageIndex extends BasePageIndex
     ];
 
     public $searchable = [
+        'group_1',
+        'group_2',
+        'group_3',
         'title',
+        'content',
         'slug',
         'path',
-        'content',
     ];
 
     public function getRecords(): array
     {
-        return array_map(function ($page) {
+        $records = [];
+
+        foreach (static::$pageList->getPages() as $page) {
             $page->load();
 
-            return [
-                'slug' => Str::slug(str_replace('/', '-', $page->getPath())),
-                'path' => $page->getPath(),
-                'title' => $page->getTitle(),
-                'content' => $this->processContent($page->getContent()),
-            ];
-        }, static::$pageList->getPages());
+            $contents = $this->processContent($page->getContent());
+
+            // Split into sections
+            $sections = $this->contentSections($contents, $page->getTitle());
+
+            foreach ($sections as $section) {
+                $slug = str_replace('/', '-', $page->getPath()) . ($section['hash'] ? '-' . $section['hash'] : '');
+                $title = $section['titles'][0];
+
+                $records[] = [
+                    'group_1' => $section['titles'][0],
+                    'group_2' => $section['titles'][1] ?? null,
+                    'group_3' => $section['titles'][2] ?? null,
+                    'slug' => Str::slug($slug),
+                    'path' => $page->getPath() . ($section['hash'] ? '#' . $section['hash'] : ''),
+                    'title' => $title,
+                    'content' => $section['content'],
+                ];
+            }
+        }
+
+        return $records;
     }
 
     public function index()
@@ -72,13 +98,89 @@ class MarkdownPageIndex extends BasePageIndex
         // Strip main title tag
         $content = preg_replace('/<h1 class="main-title">.*?<\/h1>/s', '', $content);
 
-        // Strip anchors
-        $content = preg_replace('/<a[^>]+>#<\/a>/s', '', $content);
-
-        // Apply final tweaks
-        $content = strip_tags($content);
-        $content = preg_replace('/[\r\n ]+/', ' ', $content);
-
         return $content;
+    }
+
+    /**
+     * Splits the content into sections based on heading tags.
+     *
+     * This allows us to group contents in the index based on section in the document
+     * and provide more contextual search results.
+     */
+    protected function contentSections(string $content, string $title): array
+    {
+        $sections = preg_split('/(<h[2-3][^>]*>.*?<\/h[2-3]>)/ms', $content, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+
+        $processedSections = [];
+        $currentDepth = 0;
+        $currentHeadings = [$title];
+        $currentHashbang = '';
+        $currentContents = '';
+
+        foreach ($sections as $section) {
+            if (preg_match('/<h([2-3])[^>]*>(.*?)<\/h[2-3]>/s', $section, $matches)) {
+                $depth = (int) $matches[1];
+                preg_match('/<a[^>]*href="#([^"]+)"[^>]*>(.*?)<\/a>/s', $matches[2], $titleMatches);
+                $hashbang = trim($titleMatches[1] ?? '');
+                $title = trim(str_after(strip_tags($matches[2]), '#'));
+
+                // Save previous section
+                if (!empty(trim($currentContents))) {
+                    $processedSections[] = [
+                        'titles' => $currentHeadings,
+                        'hash' => $currentHashbang,
+                        'content' => trim($currentContents),
+                    ];
+                }
+                $currentContents = '';
+                $currentHashbang = $hashbang;
+
+                if ($depth === 2) {
+                    if ($currentDepth === 3) {
+                        array_shift($currentHeadings);
+                        array_shift($currentHeadings);
+                        array_unshift($currentHeadings, trim($title));
+                        $currentDepth = 2;
+                    } elseif ($currentDepth === 0) {
+                        array_unshift($currentHeadings, trim($title));
+                        $currentDepth = 2;
+                    } else {
+                        array_shift($currentHeadings);
+                        array_unshift($currentHeadings, trim($title));
+                    }
+                } elseif ($depth === 3) {
+                    if ($currentDepth === 3) {
+                        array_shift($currentHeadings);
+                        array_unshift($currentHeadings, trim($title));
+                    } elseif ($currentDepth === 0) {
+                        // If the first section encountered is a <h3>, consider it a <h2>
+                        array_unshift($currentHeadings, trim($title));
+                        $currentDepth = 2;
+                    } else {
+                        array_unshift($currentHeadings, trim($title));
+                        $currentDepth = 3;
+                    }
+                }
+
+                continue;
+            } else {
+                // Apply final tweaks
+                $content = strip_tags($section);
+                $content = preg_replace('/[\r\n ]+/', ' ', $content);
+
+                $currentContents .= $content;
+            }
+        }
+
+        if (!empty(trim($currentContents))) {
+            // Save previous section
+            $processedSections[] = [
+                'titles' => $currentHeadings,
+                'hash' => $currentHashbang,
+                'content' => trim($currentContents),
+            ];
+        }
+
+        return $processedSections;
     }
 }
