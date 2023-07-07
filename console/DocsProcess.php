@@ -36,7 +36,9 @@ class DocsProcess extends Command
     public function handle()
     {
         $id = $this->argument('id');
-        if (empty($id)) {
+        if (!empty($id)) {
+            $ids = [$id];
+        } else {
             $docsManager = DocsManager::instance();
             $docs = $docsManager->listDocumentation();
 
