@@ -18,7 +18,7 @@ class DocsProcess extends Command
      * @var string
      */
     protected $signature = 'docs:process
-        {id : The identifier of the documentation to process}
+        {id? : The identifier of the documentation to process}
         {--t|token= : An authorization token to use when downloading the documentation}';
 
     /**
@@ -35,8 +35,30 @@ class DocsProcess extends Command
      */
     public function handle()
     {
-        $docsManager = DocsManager::instance();
         $id = $this->argument('id');
+        if (empty($id)) {
+            $docsManager = DocsManager::instance();
+            $docs = $docsManager->listDocumentation();
+
+            if (!count($docs)) {
+                $this->info('No documentation has been registered.');
+                $this->line('');
+                return;
+            }
+
+            foreach ($docs as $doc) {
+                $ids[] = $doc['id'];
+            }
+        }
+
+        foreach ($ids as $id) {
+            $this->processDoc($id);
+        }
+    }
+
+    public function processDoc(string $id)
+    {
+        $docsManager = DocsManager::instance();
         $doc = $docsManager->getDocumentation($id);
 
         $this->line('');
