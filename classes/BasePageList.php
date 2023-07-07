@@ -2,9 +2,12 @@
 
 namespace Winter\Docs\Classes;
 
+use RecursiveArrayIterator;
+use RecursiveIteratorIterator;
 use System\Classes\PluginManager;
 use Winter\Docs\Classes\Contracts\Page;
 use Winter\Docs\Classes\Contracts\PageList;
+use Winter\Storm\Support\Str;
 
 abstract class BasePageList implements PageList, \IteratorAggregate, \ArrayAccess, \Countable
 {
@@ -105,11 +108,60 @@ abstract class BasePageList implements PageList, \IteratorAggregate, \ArrayAcces
     }
 
     /**
+     * Traverse a nested associative array to find the value of an item, optionally offset from a specified item.
+     * The offset will ignore any items that don't have a value for the searchKey, but will count their
+     * children if they have any.
+     *
+     * @return string|bool Returns the value item at the given offset from the searchValue, or
+     * `false` if it doesn't exist or is out of bounds.
+     */
+    public function findInNestedArray(array $items, string $searchKey, string $searchValue, int $offset = 0): string|bool
+    {
+        // Flattened array to hold searchable values of items.
+        $flattenedItems = [];
+
+        // Using RecursiveIteratorIterator to traverse the nested array.
+        $iterator = new RecursiveIteratorIterator(new RecursiveArrayIterator($items));
+
+        // If the key matches the searchKey, add its value to the flattened array.
+        foreach ($iterator as $key => $value) {
+            // Skip any values that are an external URL.
+            if ($key === $searchKey && !Str::contains($value, '://')) {
+                $flattenedItems[] = $value;
+            }
+        }
+
+        // Search for the index of the searchValue in the flattened array.
+        $foundIndex = array_search($searchValue, $flattenedItems);
+
+        // If searchValue is not found, return false.
+        if ($foundIndex === false) {
+            return false;
+        }
+
+        // Add the offset to the found index to get the index of the desired item.
+        $desiredIndex = $foundIndex + $offset;
+
+        // If the desired index is within the boundaries of the flattened array, return the 'path' at that index.
+        // Otherwise, return false.
+        return $desiredIndex >= 0 && $desiredIndex < count($flattenedItems) ? $flattenedItems[$desiredIndex] : false;
+    }
+
+    /**
+     * Get the page at the given offset from the given path in the navigation.
+     */
+    public function getPageFromNav(array $nav, string $path, int $offset = 0): ?Page
+    {
+        $offsetPath = $this->findInNestedArray($nav, 'path', $path, $offset);
+        return $offsetPath ? $this->getPage($offsetPath) : null;
+    }
+
+    /**
      * {@inheritDoc}
      */
     public function nextPage(Page $page): ?Page
     {
-        return null;
+        return $this->getPageFromNav($this->navigation, $page->getPath(), 1);
     }
 
     /**
@@ -117,7 +169,7 @@ abstract class BasePageList implements PageList, \IteratorAggregate, \ArrayAcces
      */
     public function previousPage(Page $page): ?Page
     {
-        return null;
+        return $this->getPageFromNav($this->navigation, $page->getPath(), -1);
     }
 
     /**

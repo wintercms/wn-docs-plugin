@@ -85,6 +85,8 @@ class DocsPage extends ComponentBase
         $this->page['editUrl'] = $page->getEditUrl();
         $this->page['pageNav'] = $page->getNavigation();
         $this->page['frontMatter'] = $page->getFrontMatter();
+        $this->page['previousPage'] = $pageList->previousPage($page);
+        $this->page['nextPage'] = $pageList->nextPage($page);
     }
 
     public function onLoadPage()
@@ -150,6 +152,8 @@ class DocsPage extends ComponentBase
                 'pagePath' => $page->getPath(),
                 'frontMatter' => $page->getFrontMatter(),
                 'editUrl' => $page->getEditUrl(),
+                'previousPage' => $pageList->previousPage($page),
+                'nextPage' => $pageList->nextPage($page),
             ]),
             '#docs-toc' => $this->renderPartial('@toc', [
                 'pageNav' => $page->getNavigation(),
