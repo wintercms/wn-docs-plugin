@@ -1,15 +1,16 @@
 <?php namespace Winter\Docs\Classes;
 
+use ApplicationException;
+use Cache;
+use Config;
+use DirectoryIterator;
 use File;
 use Http;
-use Lang;
-use Config;
-use Storage;
-use DirectoryIterator;
-use ApplicationException;
-use RecursiveIteratorIterator;
-use RecursiveDirectoryIterator;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Lang;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use Storage;
 use Winter\Docs\Classes\Contracts\Documentation;
 use Winter\Docs\Classes\Contracts\Page;
 use Winter\Storm\Filesystem\Zip;
@@ -113,6 +114,14 @@ abstract class BaseDocumentation implements Documentation
     }
 
     /**
+     * Gets the cache key for this documentation.
+     */
+    public function getCacheKey(string $suffix = ''): string
+    {
+        return !empty($suffix) ? $this->getIdentifier() . '.' . $suffix : $this->getIdentifier();
+    }
+
+    /**
      * Gets the identifier of the documentation.
      */
     public function getIdentifier(): string
@@ -159,10 +168,12 @@ abstract class BaseDocumentation implements Documentation
             return $this->available;
         }
 
-        return $this->available = (
-            $this->getStorageDisk()->exists($this->getProcessedPath('page-map.json'))
-            && $this->getStorageDisk()->exists($this->getProcessedPath('toc.json'))
-        );
+        return $this->available = Cache::rememberForever($this->getCacheKey('available'), function () {
+            return (
+                $this->getStorageDisk()->exists($this->getProcessedPath('page-map.json'))
+                && $this->getStorageDisk()->exists($this->getProcessedPath('toc.json'))
+            );
+        });
     }
 
     /**
@@ -532,9 +543,11 @@ abstract class BaseDocumentation implements Documentation
      */
     public function getProcessedFile(string $path): ?string
     {
-        return $this->getStorageDisk()->get(
-            $this->getProcessedPath($path)
-        ) ?? null;
+        return Cache::rememberForever('winter.docs::storage.processedFileContents.' . $this->getCacheKey($path), function () use ($path) {
+            return $this->getStorageDisk()->get(
+                $this->getProcessedPath($path)
+            ) ?? null;
+        });
     }
 
     /**
