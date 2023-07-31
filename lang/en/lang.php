@@ -36,5 +36,9 @@ return [
                 'description' => 'The page slug will be used to determine the documentation page.',
             ],
         ],
+        'docsList' => [
+            'name' => 'Documentation list',
+            'description' => 'Lists available documentation',
+        ],
     ],
 ];
