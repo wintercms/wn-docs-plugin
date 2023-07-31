@@ -369,6 +369,7 @@ class DocsManager
 
                         $thisItem = [
                             'title' => $navItem['title'],
+                            'external' => $navItem['external'] ?? false,
                             'url' => $url,
                             'isActive' => (isset($navItem['external']) && $navItem['external'] === true)
                                 ? false
