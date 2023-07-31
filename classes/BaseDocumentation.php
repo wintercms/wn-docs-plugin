@@ -7,6 +7,7 @@ use DirectoryIterator;
 use File;
 use Http;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Support\Facades\App;
 use Lang;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -166,6 +167,12 @@ abstract class BaseDocumentation implements Documentation
     {
         if (!is_null($this->available)) {
             return $this->available;
+        }
+
+        // Don't cache result if running in console.
+        if (App::runningInConsole()) {
+            return $this->available = $this->getStorageDisk()->exists($this->getProcessedPath('page-map.json'))
+                && $this->getStorageDisk()->exists($this->getProcessedPath('toc.json'));
         }
 
         return $this->available = Cache::rememberForever($this->getCacheKey('available'), function () {
