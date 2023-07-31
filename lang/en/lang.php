@@ -41,4 +41,8 @@ return [
             'description' => 'Lists available documentation',
         ],
     ],
+    'menuitem' => [
+        'docs' => 'Documentation',
+        'docs-page' => 'Specific documentation page',
+    ],
 ];

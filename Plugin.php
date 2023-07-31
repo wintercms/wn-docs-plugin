@@ -72,6 +72,8 @@ class Plugin extends PluginBase
         if ($this->app->runningInConsole()) {
             $this->registerCommands();
             $this->registerPublishedConfig();
+        } else {
+            $this->extendWinterPagesPlugin();
         }
 
         // Extend mirror paths to mirror assets
@@ -162,5 +164,30 @@ class Plugin extends PluginBase
         }
 
         return $handlers;
+    }
+
+
+    /**
+     * Extends the Winter.Pages plugin
+     */
+    protected function extendWinterPagesPlugin(): void
+    {
+        /*
+         * Register menu items for the Winter.Pages plugin
+         */
+        Event::listen('pages.menuitem.listTypes', function () {
+            return [
+                'docs'            => 'winter.docs::lang.menuitem.docs',
+                'docs-page'           => 'winter.docs::lang.menuitem.docs-page',
+            ];
+        });
+
+        Event::listen('pages.menuitem.getTypeInfo', function ($type) {
+            return DocsManager::getMenuTypeInfo($type);
+        });
+
+        Event::listen('pages.menuitem.resolveItem', function ($type, $item, $url, $theme) {
+            return DocsManager::resolveMenuItem($type, $item, $url, $theme);
+        });
     }
 }

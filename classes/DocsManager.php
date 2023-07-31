@@ -5,6 +5,7 @@ use Lang;
 use Config;
 use Validator;
 use ApplicationException;
+use Cms\Classes\Controller;
 use Cms\Classes\Page;
 use Cms\Classes\Theme;
 use System\Classes\PluginManager;
@@ -87,20 +88,12 @@ class DocsManager
         foreach ($this->registered as $id => $doc) {
             $instance = $this->getDocumentation($id);
 
-            // Find the page that this documentation is connected to
-            $theme = Theme::getActiveTheme();
-            $page = Page::listInTheme($theme)
-                ->withComponent('docsPage', function ($component) use ($id) {
-                    return $component->property('docId') === $id;
-                })
-                ->first();
-
             $docs[] = [
                 'id' => $id,
                 'instance' => $instance,
                 'name' => $doc['name'],
                 'type' => $doc['type'],
-                'pageUrl' => ($page) ? Page::url($page->getFileName(), ['slug' => '']) : null,
+                'pageUrl' => $this->getUrl($id),
                 'sourceUrl' => $instance->getRepositoryUrl(),
                 'plugin' => Lang::get($this->pluginManager
                     ->findByIdentifier($doc['plugin'])
@@ -226,5 +219,198 @@ class DocsManager
         $code = preg_replace('/[^a-z0-9]/', '', strtolower($code));
 
         return implode('.', array_filter([$author, $plugin, $code]));
+    }
+
+    /**
+     * Gets the URL to the documentation, based on the page the documentation is connected to.
+     */
+    public function getUrl(string $id): ?string
+    {
+        // Find the page that this documentation is connected to
+        $theme = Theme::getActiveTheme();
+        $page = Page::listInTheme($theme)
+            ->withComponent('docsPage', function ($component) use ($id) {
+                return $component->property('docId') === $id;
+            })
+            ->first();
+        $controller = new Controller($theme);
+
+        if (!$page) {
+            return null;
+        }
+
+        return $controller->pageUrl($page->getFileName(), ['slug' => '']);
+    }
+
+    /**
+     * Handler for the pages.menuitem.getTypeInfo event.
+     * Returns a menu item type information. The type information is returned as array
+     * with the following elements:
+     * - references - a list of the item type reference options. The options are returned in the
+     *   ["key"] => "title" format for options that don't have sub-options, and in the format
+     *   ["key"] => ["title"=>"Option title", "items"=>[...]] for options that have sub-options. Optional,
+     *   required only if the menu item type requires references.
+     * - nesting - Boolean value indicating whether the item type supports nested items. Optional,
+     *   false if omitted.
+     * - dynamicItems - Boolean value indicating whether the item type could generate new menu items.
+     *   Optional, false if omitted.
+     * - cmsPages - a list of CMS pages (objects of the Cms\Classes\Page class), if the item type requires a CMS page reference to
+     *   resolve the item URL.
+     */
+    public static function getMenuTypeInfo(string $type): array
+    {
+        $results = [];
+
+        if ($type === 'docs') {
+            $results = [
+                'references'   => [],
+                'nesting'      => true,
+                'dynamicItems' => true
+            ];
+
+            foreach (self::instance()->listDocumentation() as $doc) {
+                if (empty($doc['id']) || !$doc['instance']->isProcessed()) {
+                    continue;
+                }
+
+                $results['references'][$doc['id']] = [
+                    'title' => $doc['name'],
+                ];
+            }
+        } elseif ($type === 'docs-page') {
+            $results = [
+                'references'   => [],
+                'nesting'      => false,
+                'dynamicItems' => false
+            ];
+
+            foreach (self::instance()->listDocumentation() as $doc) {
+                if (empty($doc['id']) || !$doc['instance']->isProcessed()) {
+                    continue;
+                }
+
+                $pageList = $doc['instance']->getPageList();
+                $nav = $pageList->getNavigation();
+                $items = [];
+
+                $iterator = function ($navItems, $prefix = null) use (&$iterator, $doc, &$items) {
+                    foreach ($navItems as $navItem) {
+                        if (empty($navItem['path'])) {
+                            if (isset($navItem['children']) && count($navItem['children'])) {
+                                $iterator($navItem['children'], implode(' / ', array_filter([$prefix, $navItem['title']])));
+                            }
+                            continue;
+                        }
+
+                        $items[$doc['id'] . '||' . $navItem['path']] = [
+                            'title' => implode(' / ', array_filter([$prefix, $navItem['title']]))
+                        ];
+                    }
+                };
+                $iterator($nav);
+
+                $results['references'][$doc['id']] = [
+                    'title' => $doc['name'],
+                    'items' => $items,
+                ];
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Handler for the pages.menuitem.resolveItem event.
+     * Returns information about a menu item. The result is an array
+     * with the following keys:
+     * - url - the menu item URL. Not required for menu item types that return all available records.
+     *   The URL should be returned relative to the website root and include the subdirectory, if any.
+     *   Use the Url::to() helper to generate the URLs.
+     * - isActive - determines whether the menu item is active. Not required for menu item types that
+     *   return all available records.
+     * - items - an array of arrays with the same keys (url, isActive, items) + the title key.
+     *   The items array should be added only if the $item's $nesting property value is TRUE.
+     *
+     * @param DefinitionItem|MenuItem $item Specifies the menu item.
+     */
+    public static function resolveMenuItem(string $type, object $item, string $currentUrl, Theme $theme): ?array
+    {
+        $result = null;
+
+        if ($type === 'docs') {
+            $docs = DocsManager::instance()->getDocumentation($item->reference);
+            $baseUrl = DocsManager::instance()->getUrl($item->reference);
+
+            if (!$docs) {
+                return null;
+            }
+
+            $result = [
+                'url' => $baseUrl,
+                'isActive' => $baseUrl === $currentUrl,
+                'isChildActive' => str_starts_with($currentUrl, $baseUrl)
+            ];
+
+            if ($item->nesting) {
+                $pageList = $docs->getPageList();
+                $nav = $pageList->getNavigation();
+
+                $iterator = function ($items) use (&$iterator, $baseUrl, $currentUrl) {
+                    $thisLevel = [];
+
+                    foreach ($items as $navItem) {
+                        if (empty($navItem['path'])) {
+                            $url = false;
+                        } elseif ($navItem['external']) {
+                            $url = $navItem['path'];
+                        } else {
+                            $url = $baseUrl . '/' . $navItem['path'];
+                        }
+
+                        $thisItem = [
+                            'title' => $navItem['title'],
+                            'url' => $url,
+                            'isActive' => (isset($navItem['external']) && $navItem['external'] === true)
+                                ? false
+                                : $url === $currentUrl,
+                        ];
+                        if (isset($navItem['children']) && count($navItem['children'])) {
+                            $thisItem['isChildActive'] = (isset($navItem['external']) && $navItem['external'] === true)
+                                ? false
+                                : str_starts_with($currentUrl, $url);
+                            $thisItem['items'] = $iterator($navItem['children']);
+                        }
+
+                        $thisLevel[] = $thisItem;
+                    }
+
+                    return $thisLevel;
+                };
+
+                $result['items'] = $iterator($nav);
+            }
+        } elseif ($type === 'docs-page') {
+            if (str_contains($item->reference, '||')) {
+                [$docId, $pagePath] = explode('||', $item->reference, 2);
+            } else {
+                $docId = $item->reference;
+            }
+
+            $docs = DocsManager::instance()->getDocumentation($docId);
+            $baseUrl = DocsManager::instance()->getUrl($docId);
+
+            if (!$docs) {
+                return null;
+            }
+
+            $pageUrl = $baseUrl . '/' . $pagePath;
+
+            $result = [
+                'url' => $pageUrl,
+                'isActive' => $pageUrl === $currentUrl,
+            ];
+        }
+
+        return $result;
     }
 }
