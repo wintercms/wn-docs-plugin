@@ -2,10 +2,10 @@
 
 namespace Winter\Docs;
 
-use Event;
 use Backend;
 use Cms\Classes\Page;
 use Cms\Classes\Theme;
+use Event;
 use System\Classes\PluginBase;
 use Winter\Docs\Classes\DocsManager;
 use Winter\Docs\Classes\MarkdownDocumentation;
@@ -35,7 +35,7 @@ class Plugin extends PluginBase
             'author'      => 'Winter CMS',
             'icon'        => 'icon-tags',
             'homepage'    => 'https://github.com/wintercms/wn-docs-plugin',
-            'replaces'    => 'RainLab.Docs'
+            'replaces'    => 'RainLab.Docs',
         ];
     }
 
@@ -74,6 +74,7 @@ class Plugin extends PluginBase
             $this->registerPublishedConfig();
         } else {
             $this->extendWinterPagesPlugin();
+            $this->extendWinterSitemapPlugin();
         }
 
         // Extend mirror paths to mirror assets
@@ -106,7 +107,7 @@ class Plugin extends PluginBase
                 $this->app->configPath(),
                 'winter',
                 'docs',
-                'storage.php'
+                'storage.php',
             ])
         ]);
     }
@@ -177,8 +178,8 @@ class Plugin extends PluginBase
          */
         Event::listen('pages.menuitem.listTypes', function () {
             return [
-                'docs'            => 'winter.docs::lang.menuitem.docs',
-                'docs-page'           => 'winter.docs::lang.menuitem.docs-page',
+                'docs'       => 'winter.docs::lang.menuitem.docs',
+                'docs-page'  => 'winter.docs::lang.menuitem.docs-page',
             ];
         });
 
@@ -188,6 +189,21 @@ class Plugin extends PluginBase
 
         Event::listen('pages.menuitem.resolveItem', function ($type, $item, $url, $theme) {
             return DocsManager::resolveMenuItem($type, $item, $url, $theme);
+        });
+    }
+
+    /**
+     * Extends the Winter.Sitemap plugin
+     */
+    protected function extendWinterSitemapPlugin(): void
+    {
+        Event::listen('winter.sitemap.beforeAddItem', function ($item, array $itemInfo) {
+            if (
+                $item->type === 'docs'
+                && ($itemInfo['external'] ?? false)
+            ) {
+                return false;
+            }
         });
     }
 }
