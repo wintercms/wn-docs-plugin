@@ -361,7 +361,7 @@ class DocsManager
                     foreach ($items as $navItem) {
                         if (empty($navItem['path'])) {
                             $url = false;
-                        } elseif ($navItem['external']) {
+                        } elseif ($navItem['external'] ?? false) {
                             $url = $navItem['path'];
                         } else {
                             $url = $baseUrl . '/' . $navItem['path'];
