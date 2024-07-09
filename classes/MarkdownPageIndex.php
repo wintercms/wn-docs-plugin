@@ -13,7 +13,6 @@ class MarkdownPageIndex extends BasePageIndex
     public $fillable = [
         'group_1',
         'group_2',
-        'group_3',
         'title',
         'slug',
         'path',
@@ -31,8 +30,8 @@ class MarkdownPageIndex extends BasePageIndex
     ];
 
     public $searchable = [
-        'group_1',
         'group_2',
+        'group_1',
         'group_3',
         'title',
         'content',

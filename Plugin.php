@@ -156,6 +156,7 @@ class Plugin extends PluginBase
                     }
 
                     return [
+                        'group' => $record->group_1,
                         'title' => $record->title,
                         'description' => $excerpt,
                         'url' => Page::url($page->getBaseFileName(), ['slug' => $record->path]),
