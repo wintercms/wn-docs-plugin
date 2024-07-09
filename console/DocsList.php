@@ -42,16 +42,25 @@ class DocsList extends Command
             return;
         }
 
-        foreach ($docs as $doc) {
-            $this->line('');
-            $this->info($doc['id']);
-            $this->line('    Name:           ' . $doc['name']);
-            $this->line('    Type:           ' . $doc['type']);
-            $this->line('    Plugin:         ' . $doc['plugin']);
-            $this->line('    Is downloaded?: ' . ($doc['instance']->isDownloaded() ? 'Yes' : 'No'));
-            $this->line('    Is processed?:  ' . ($doc['instance']->isProcessed() ? 'Yes' : 'No'));
-        }
-
-        $this->line('');
+        $this->table(
+            [
+                'ID',
+                'Name',
+                'Type',
+                'Plugin',
+                'Downloaded?',
+                'Processed?',
+            ],
+            array_map(function ($doc) {
+                return [
+                    $doc['id'],
+                    $doc['name'],
+                    ($doc['type'] === 'php') ? 'PHP API' : 'Markdown',
+                    $doc['plugin'],
+                    ($doc['instance']->isDownloaded() ? '<info>Yes</info>' : 'No'),
+                    ($doc['instance']->isProcessed() ? '<info>Yes</info>' : 'No'),
+                ];
+            }, $docs)
+        );
     }
 }
