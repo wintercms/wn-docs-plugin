@@ -1,14 +1,17 @@
-<?php namespace Winter\Docs\Classes;
+<?php
 
-use Log;
-use Lang;
-use Config;
-use Validator;
-use ApplicationException;
+namespace Winter\Docs\Classes;
+
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Lang;
 use Cms\Classes\Controller;
 use Cms\Classes\Page;
 use Cms\Classes\Theme;
 use System\Classes\PluginManager;
+use Winter\Storm\Support\Facades\Config;
+use Winter\Storm\Support\Facades\Validator;
+use Winter\Storm\Exception\ApplicationException;
+use Winter\Storm\Exception\ValidationException;
 
 class DocsManager
 {
@@ -46,22 +49,26 @@ class DocsManager
         $documentation = $this->pluginManager->getRegistrationMethodValues('registerDocumentation');
 
         foreach ($documentation as $pluginCode => $docs) {
-            if (!is_array($docs)) {
-                $errorMessage = sprintf(
-                    'The "registerDocumentation" method in plugin "%s" did not return an array.',
-                    [$pluginCode]
-                );
-
-                if (Config::get('app.debug', false)) {
-                    throw new ApplicationException($errorMessage);
+            try {
+                if (!is_array($docs)) {
+                    throw new ApplicationException(sprintf(
+                        'The "registerDocumentation" method in plugin "%s" did not return an array.',
+                        [$pluginCode]
+                    ));
+                    continue;
                 }
 
-                Log::error($errorMessage);
-                continue;
-            }
+                foreach ($docs as $code => $doc) {
+                    $this->addDocumentation($pluginCode, $code, $doc);
+                }
+            } catch (ApplicationException $e) {
+                if (Config::get('app.debug', false)) {
+                    throw $e;
+                }
 
-            foreach ($docs as $code => $doc) {
-                $this->addDocumentation($pluginCode, $code, $doc);
+                Log::error($e->getMessage());
+            } catch (ValidationException $e) {
+                Log::error($e->getErrors()->first());
             }
         }
     }
