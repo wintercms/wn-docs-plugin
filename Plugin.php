@@ -156,7 +156,8 @@ class Plugin extends PluginBase
                     }
 
                     return [
-                        'group' => $record->group_1,
+                        'group' => ($record->group_1 ?? null),
+                        'label' => (isset($record->group_3)) ? ($record->group_2 ?? null) : null,
                         'title' => $record->title,
                         'description' => $excerpt,
                         'url' => Page::url($page->getBaseFileName(), ['slug' => $record->path]),
