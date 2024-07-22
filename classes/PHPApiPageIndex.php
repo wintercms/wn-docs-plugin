@@ -11,55 +11,76 @@ class PHPApiPageIndex extends BasePageIndex
     ];
 
     public $fillable = [
-        'slug',
+        'group_1',
+        'group_2',
+        'group_3',
+        'combined',
         'title',
-        'type',
-        'methods',
-        'properties',
-        'constants',
-        'summary',
-        'description',
+        'slug',
+        'path',
+        'content',
     ];
 
     public $recordSchema = [
-        'slug' => 'string',
+        'group_1' => 'string',
+        'group_2' => 'string',
+        'group_3' => 'string',
+        'combined' => 'string',
         'title' => 'string',
-        'type' => 'string',
-        'methods' => 'text',
-        'properties' => 'text',
-        'constants' => 'text',
-        'summary' => 'text',
-        'description' => 'text',
+        'slug' => 'string',
+        'path' => 'string',
+        'content' => 'text',
     ];
 
     public $searchable = [
-        'slug',
+        'group_3',
+        'group_2',
+        'group_1',
+        'combined',
         'title',
-        'type',
-        'methods',
-        'properties',
-        'constants',
-        'summary',
-        'description',
+        'content',
+        'slug',
+        'path',
     ];
 
     public function getRecords(): array
     {
-        return array_map(function ($page) {
+        $records = [];
+
+        foreach (static::$pageList->getPages() as $page) {
             $page->load();
             $frontMatter = $page->getFrontMatter();
 
-            return [
-                'slug' => Str::slug(str_replace('/', '-', $page->getPath())),
+            // Add record for class
+            $records[] = [
+                'group_1' => $frontMatter['namespace'] ?? '',
+                'group_2' => $frontMatter['title'] ?? '',
+                'group_3' => '',
+                'combined' => trim(($frontMatter['namespace'] ?? '') . ' ' . ($frontMatter['title'] ?? '')),
                 'title' => $frontMatter['title'],
-                'type' => $frontMatter['type'],
-                'methods' => json_encode($frontMatter['methods'] ?? []),
-                'properties' => json_encode($frontMatter['properties'] ?? []),
-                'constants' => json_encode($frontMatter['constants'] ?? []),
-                'summary' => strip_tags($frontMatter['summary'] ?? ''),
-                'description' => strip_tags($frontMatter['description'] ?? ''),
+                'content' => strip_tags($frontMatter['summary'] ?? ''),
+                'slug' => Str::slug(str_replace('/', '-', $page->getPath())),
+                'path' => $page->getPath(),
             ];
-        }, static::$pageList->getPages());
+        }
+
+        return $records;
+
+        // return array_map(function ($page) {
+        //     $page->load();
+        //     $frontMatter = $page->getFrontMatter();
+
+        //     return [
+        //         'slug' => Str::slug(str_replace('/', '-', $page->getPath())),
+        //         'title' => $frontMatter['title'],
+        //         'type' => $frontMatter['type'],
+        //         'methods' => json_encode($frontMatter['methods'] ?? []),
+        //         'properties' => json_encode($frontMatter['properties'] ?? []),
+        //         'constants' => json_encode($frontMatter['constants'] ?? []),
+        //         'summary' => strip_tags($frontMatter['summary'] ?? ''),
+        //         'description' => strip_tags($frontMatter['description'] ?? ''),
+        //     ];
+        // }, );
     }
 
     public function index()

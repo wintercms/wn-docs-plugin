@@ -229,19 +229,34 @@ class PHPApiDocumentation extends BaseDocumentation
     protected function prependFrontMatter(array $class, string $template): string
     {
         $frontMatter = [
+            'namespace' => $class['namespace'] ?? '',
             'title' => $class['class'],
             'type' => 'class',
             'methods' => array_map(function ($item) {
-                return $item['name'];
-            }, $class['methods'] ?? []),
+                return [
+                    'name' => $item['name'],
+                    'summary' => $item['summary'] ?? '',
+                ];
+            }, array_filter($class['methods'] ?? [], function ($item) {
+                return ($item['inherited'] ?? true) === false;
+            })),
             'properties' => array_map(function ($item) {
-                return $item['name'];
-            }, $class['properties'] ?? []),
+                return [
+                    'name' => $item['name'],
+                    'summary' => $item['summary'] ?? '',
+                ];
+            }, array_filter($class['properties'] ?? [], function ($item) {
+                return ($item['inherited'] ?? true) === false;
+            })),
             'constants' => array_map(function ($item) {
-                return $item['name'];
-            }, $class['constants'] ?? []),
+                return [
+                    'name' => $item['name'],
+                    'summary' => $item['summary'] ?? '',
+                ];
+            }, array_filter($class['constants'] ?? [], function ($item) {
+                return ($item['inherited'] ?? true) === false;
+            })),
             'summary' => $class['docs']['summary'] ?? '',
-            'description' => $class['docs']['body'] ?? '',
         ];
 
         return '<script id="frontMatter" type="application/json">'
@@ -259,7 +274,6 @@ class PHPApiDocumentation extends BaseDocumentation
             'title' => $event['name'],
             'type' => 'event',
             'summary' => $class['docs']['summary'] ?? '',
-            'description' => $class['docs']['body'] ?? '',
         ];
 
         return '<script id="frontMatter" type="application/json">'
