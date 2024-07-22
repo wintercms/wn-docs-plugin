@@ -235,7 +235,7 @@ class PHPApiDocumentation extends BaseDocumentation
             'methods' => array_map(function ($item) {
                 return [
                     'name' => $item['name'],
-                    'summary' => $item['summary'] ?? '',
+                    'summary' => $item['docs']['summary'] ?? '',
                 ];
             }, array_filter($class['methods'] ?? [], function ($item) {
                 return ($item['inherited'] ?? true) === false;
@@ -243,7 +243,7 @@ class PHPApiDocumentation extends BaseDocumentation
             'properties' => array_map(function ($item) {
                 return [
                     'name' => $item['name'],
-                    'summary' => $item['summary'] ?? '',
+                    'summary' => $item['docs']['summary'] ?? '',
                 ];
             }, array_filter($class['properties'] ?? [], function ($item) {
                 return ($item['inherited'] ?? true) === false;
@@ -251,7 +251,7 @@ class PHPApiDocumentation extends BaseDocumentation
             'constants' => array_map(function ($item) {
                 return [
                     'name' => $item['name'],
-                    'summary' => $item['summary'] ?? '',
+                    'summary' => $item['docs']['summary'] ?? '',
                 ];
             }, array_filter($class['constants'] ?? [], function ($item) {
                 return ($item['inherited'] ?? true) === false;

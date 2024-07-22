@@ -33,54 +33,86 @@ class PHPApiPageIndex extends BasePageIndex
     ];
 
     public $searchable = [
-        'group_3',
-        'group_2',
-        'group_1',
-        'combined',
         'title',
+        'combined',
         'content',
         'slug',
         'path',
     ];
 
-    public function getRecords(): array
+    public function getRecords()
     {
-        $records = [];
-
         foreach (static::$pageList->getPages() as $page) {
             $page->load();
             $frontMatter = $page->getFrontMatter();
 
-            // Add record for class
-            $records[] = [
-                'group_1' => $frontMatter['namespace'] ?? '',
-                'group_2' => $frontMatter['title'] ?? '',
-                'group_3' => '',
-                'combined' => trim(($frontMatter['namespace'] ?? '') . ' ' . ($frontMatter['title'] ?? '')),
-                'title' => $frontMatter['title'],
-                'content' => strip_tags($frontMatter['summary'] ?? ''),
-                'slug' => Str::slug(str_replace('/', '-', $page->getPath())),
-                'path' => $page->getPath(),
-            ];
+            if ($frontMatter['type'] === 'class') {
+                // Add record for class
+                yield [
+                    'group_1' => $frontMatter['title'] ?? '',
+                    'group_2' => 'Class',
+                    'group_3' => $frontMatter['namespace'] ?? '',
+                    'combined' => trim(($frontMatter['namespace'] ?? '') . ' ' . ($frontMatter['title'] ?? '')),
+                    'title' => $frontMatter['title'],
+                    'content' => strip_tags($frontMatter['summary'] ?? ''),
+                    'slug' => Str::slug(str_replace('/', '-', $page->getPath())),
+                    'path' => $page->getPath(),
+                ];
+
+                // Add records for methods
+                foreach ($frontMatter['methods'] ?? [] as $method) {
+                    yield [
+                        'group_1' => $frontMatter['title'] ?? '',
+                        'group_2' => 'Method',
+                        'group_3' => $frontMatter['namespace'] ?? '',
+                        'combined' => trim(($frontMatter['namespace'] ?? '') . ' ' . ($frontMatter['title'] ?? '') . ' ' . $method['name']),
+                        'title' => $method['name'] . '()',
+                        'content' => strip_tags($method['summary'] ?? ''),
+                        'slug' => Str::slug(str_replace('/', '-', $page->getPath()) . '-method-' . $method['name']),
+                        'path' => $page->getPath() . '#method-' . Str::slug($method['name']),
+                    ];
+                }
+
+                // Add records for properties
+                foreach ($frontMatter['properties'] ?? [] as $property) {
+                    yield [
+                        'group_1' => $frontMatter['title'] ?? '',
+                        'group_2' => 'Property',
+                        'group_3' => $frontMatter['namespace'] ?? '',
+                        'combined' => trim(($frontMatter['namespace'] ?? '') . ' ' . ($frontMatter['title'] ?? '') . ' ' . $method['name']),
+                        'title' => '$' . $property['name'],
+                        'content' => strip_tags($property['summary'] ?? ''),
+                        'slug' => Str::slug(str_replace('/', '-', $page->getPath()) . '-prop-' . $property['name']),
+                        'path' => $page->getPath() . '#prop-' . Str::slug($property['name']),
+                    ];
+                }
+
+                // Add records for constants
+                foreach ($frontMatter['constants'] ?? [] as $constant) {
+                    yield [
+                        'group_1' => $frontMatter['title'] ?? '',
+                        'group_2' => 'Constant',
+                        'group_3' => $frontMatter['namespace'] ?? '',
+                        'combined' => trim(($frontMatter['namespace'] ?? '') . ' ' . ($frontMatter['title'] ?? '') . ' ' . $method['name']),
+                        'title' => $constant['name'],
+                        'content' => strip_tags($constant['summary'] ?? ''),
+                        'slug' => Str::slug(str_replace('/', '-', $page->getPath()) . '-const-' . $constant['name']),
+                        'path' => $page->getPath() . '#constants',
+                    ];
+                }
+            } else {
+                yield [
+                    'group_1' => 'Events',
+                    'group_2' => null,
+                    'group_3' => null,
+                    'combined' => 'event ' . $frontMatter['title'],
+                    'title' => $frontMatter['title'],
+                    'content' => strip_tags($frontMatter['summary'] ?? ''),
+                    'slug' => Str::slug(str_replace('/', '-', $page->getPath())),
+                    'path' => $page->getPath(),
+                ];
+            }
         }
-
-        return $records;
-
-        // return array_map(function ($page) {
-        //     $page->load();
-        //     $frontMatter = $page->getFrontMatter();
-
-        //     return [
-        //         'slug' => Str::slug(str_replace('/', '-', $page->getPath())),
-        //         'title' => $frontMatter['title'],
-        //         'type' => $frontMatter['type'],
-        //         'methods' => json_encode($frontMatter['methods'] ?? []),
-        //         'properties' => json_encode($frontMatter['properties'] ?? []),
-        //         'constants' => json_encode($frontMatter['constants'] ?? []),
-        //         'summary' => strip_tags($frontMatter['summary'] ?? ''),
-        //         'description' => strip_tags($frontMatter['description'] ?? ''),
-        //     ];
-        // }, );
     }
 
     public function index()

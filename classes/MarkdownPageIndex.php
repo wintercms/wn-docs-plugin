@@ -43,10 +43,8 @@ class MarkdownPageIndex extends BasePageIndex
         'path',
     ];
 
-    public function getRecords(): array
+    public function getRecords()
     {
-        $records = [];
-
         foreach (static::$pageList->getPages() as $page) {
             $page->load();
 
@@ -59,7 +57,7 @@ class MarkdownPageIndex extends BasePageIndex
                 $slug = str_replace('/', '-', $page->getPath()) . ($section['hash'] ? '-' . $section['hash'] : '');
                 $title = $section['titles'][count($section['titles']) - 1];
 
-                $records[] = [
+                yield [
                     'group_1' => $section['titles'][0],
                     'group_2' => $section['titles'][1] ?? null,
                     'group_3' => $section['titles'][2] ?? null,
@@ -71,8 +69,6 @@ class MarkdownPageIndex extends BasePageIndex
                 ];
             }
         }
-
-        return $records;
     }
 
     public function index()
