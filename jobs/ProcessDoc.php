@@ -6,6 +6,9 @@ use Winter\Docs\Classes\DocsManager;
 use Winter\Storm\Console\Command;
 use Winter\Storm\Exception\ApplicationException;
 
+/**
+ * Process documentation job.
+ */
 class ProcessDoc
 {
     /**
@@ -34,7 +37,7 @@ class ProcessDoc
      * This can either be run through the `docs:process` command, or as a queued job. If run through the command, the
      * command instance should be passed as the third argument.
      */
-    public function processDoc(string $id, ?string $token = null, ?Command $command = null)
+    public function processDoc(string $id, ?string $token = null, ?Command $command = null): void
     {
         $this->command = $command;
 
