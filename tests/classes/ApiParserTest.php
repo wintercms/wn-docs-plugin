@@ -15,7 +15,7 @@ class ApiParserTest extends TestCase
     {
         parent::setUp();
 
-        $this->apiParser = new PHPApiParser(dirname(dirname(__DIR__)) . '/fixtures', [
+        $this->apiParser = new PHPApiParser(dirname(__DIR__) . '/fixtures', [
             'api',
             'utilities',
         ]);
@@ -29,7 +29,7 @@ class ApiParserTest extends TestCase
     {
         $this->assertCount(7, $this->apiParser->getPaths());
 
-        $fixturePath = dirname(dirname(__DIR__)) . '/fixtures/';
+        $fixturePath = dirname(__DIR__) . '/fixtures/';
         $filenames = $this->apiParser->getPaths();
         sort($filenames, SORT_NATURAL);
 

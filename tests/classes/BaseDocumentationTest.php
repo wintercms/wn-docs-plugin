@@ -1,7 +1,9 @@
-<?php namespace Winter\Docs\Tests\Classes;
+<?php
 
-use ApplicationException;
+namespace Winter\Docs\Tests\Classes;
+
 use System\Tests\Bootstrap\TestCase;
+use Winter\Storm\Exception\ApplicationException;
 
 /**
  * @covers \Winter\Docs\Classes\BaseDocumentation

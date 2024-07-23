@@ -1,4 +1,6 @@
-<?php namespace Winter\Docs\Tests\Classes;
+<?php
+
+namespace Winter\Docs\Tests\Classes;
 
 use System\Tests\Bootstrap\PluginTestCase;
 use System\Classes\PluginManager;
@@ -81,7 +83,7 @@ class DocsManagerTest extends PluginTestCase
 
         $this->docsManager->addDocumentation('Docs.Test', 'user', [
             'name' => 'User Documentation',
-            'type' => 'user',
+            'type' => 'md',
             'source' => 'local',
             'path' => dirname(dirname(__DIR__)) . '/fixtures/user'
         ]);
