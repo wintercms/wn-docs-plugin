@@ -2,6 +2,11 @@
 
 namespace Winter\Docs\Classes;
 
+use League\CommonMark\Environment\Environment;
+use League\CommonMark\Extension\Autolink\AutolinkExtension;
+use League\CommonMark\Extension\DisallowedRawHtml\DisallowedRawHtmlExtension;
+use League\CommonMark\Parser\MarkdownParser;
+use League\CommonMark\Renderer\HtmlRenderer;
 use phpDocumentor\Reflection\DocBlock\Tags\Author;
 use phpDocumentor\Reflection\DocBlock\Tags\Generic;
 use phpDocumentor\Reflection\DocBlock\Tags\InvalidTag;
@@ -22,8 +27,10 @@ use PhpParser\Node\UnionType;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
 use Symfony\Component\Finder\Glob;
+use Winter\Storm\Parse\Markdown\CommonMarkCoreExtension;
+use Winter\Storm\Parse\Markdown\StrikethroughExtension;
 use Winter\Storm\Support\Arr;
-use Winter\Storm\Support\Facades\Markdown;
+
 /**
  * PHP API Parser.
  *
@@ -65,6 +72,15 @@ class PHPApiParser
 
     /** Factory instance for generating DocBlock reflections */
     protected DocBlockFactory $docBlockFactory;
+
+    /** Markdown parsing environment */
+    protected Environment $markdownEnvironment;
+
+    /** Markdown parser */
+    protected MarkdownParser $markdownParser;
+
+    /** Markdown renderer */
+    protected HtmlRenderer $markdownRenderer;
 
     /**
      * Constructor.
@@ -2124,11 +2140,28 @@ class PHPApiParser
      */
     protected function renderMarkdown(string $markdown): string
     {
+        if (!isset($this->markdownEnvironment)) {
+            $this->createMarkdownEnvironment();
+        }
+
         try {
-            $content = Markdown::parse($markdown);
-            return trim($content);
+            $ast = $this->markdownParser->parse($markdown);
+            return trim($this->markdownRenderer->renderDocument($ast));
         } catch (\Throwable $e) {
             return '';
         }
+    }
+
+    protected function createMarkdownEnvironment()
+    {
+        $markdown = new Environment();
+        $markdown->addExtension(new CommonMarkCoreExtension);
+        $markdown->addExtension(new StrikethroughExtension);
+        $markdown->addExtension(new AutolinkExtension);
+        $markdown->addExtension(new DisallowedRawHtmlExtension);
+
+        $this->markdownEnvironment = $markdown;
+        $this->markdownParser = new MarkdownParser($this->markdownEnvironment);
+        $this->markdownRenderer = new HtmlRenderer($this->markdownEnvironment);
     }
 }
