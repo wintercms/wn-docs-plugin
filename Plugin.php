@@ -2,16 +2,15 @@
 
 namespace Winter\Docs;
 
-use Backend;
 use Cms\Classes\Page;
 use Cms\Classes\Theme;
-use Event;
 use System\Classes\PluginBase;
 use Winter\Docs\Classes\DocsManager;
 use Winter\Docs\Classes\MarkdownDocumentation;
 use Winter\Docs\Classes\MarkdownPageIndex;
 use Winter\Docs\Classes\PHPApiPageIndex;
 use Winter\Storm\Support\Str;
+use Winter\Storm\Support\Facades\Event;
 
 /**
  * Docs plugin.
