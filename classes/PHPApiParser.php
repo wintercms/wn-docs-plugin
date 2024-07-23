@@ -840,8 +840,8 @@ class PHPApiParser
 
         // Get main info
         $details = [
-            'summary' => Markdown::parse($docBlock->getSummary()),
-            'body' => Markdown::parse($docBlock->getDescription()->render()),
+            'summary' => $this->renderMarkdown($docBlock->getSummary()),
+            'body' => $this->renderMarkdown($docBlock->getDescription()->render()),
             'since' => (count($docBlock->getTagsByName('since')))
                 ? $docBlock->getTagsByName('since')[0]->getVersion() ?? null
                 : null,
@@ -879,7 +879,7 @@ class PHPApiParser
                 ];
             } else {
                 if (empty($details['summary']) && !empty($var->getDescription())) {
-                    $details['summary'] = Markdown::parse($var->getDescription()->render());
+                    $details['summary'] = $this->renderMarkdown($var->getDescription()->render());
                 }
 
                 $details['var'] = [
@@ -903,7 +903,7 @@ class PHPApiParser
                 } else {
                     $details['params'][$tag->getVariableName()] = [
                         'type' => $this->getDocType($tag->getType(), $namespace, $uses),
-                        'summary' => Markdown::parse($tag->getDescription()->render()),
+                        'summary' => $this->renderMarkdown($tag->getDescription()->render()),
                     ];
                 }
             }
@@ -915,7 +915,7 @@ class PHPApiParser
             foreach ($docBlock->getTagsByName('throws') as $tag) {
                 $details['throws'][] = [
                     'type' => $this->getDocType($tag->getType(), $namespace, $uses),
-                    'summary' => Markdown::parse($tag->getDescription()->render()),
+                    'summary' => $this->renderMarkdown($tag->getDescription()->render()),
                 ];
             }
         }
@@ -936,7 +936,7 @@ class PHPApiParser
             } else {
                 $details['return'] = [
                     'type' => $this->getDocType($return->getType(), $namespace, $uses),
-                    'summary' => Markdown::parse($return->getDescription()->render()),
+                    'summary' => $this->renderMarkdown($return->getDescription()->render()),
                 ];
             }
         }
@@ -2116,6 +2116,19 @@ class PHPApiParser
                 $names, SORT_STRING, SORT_ASC,
                 $class['methods']
             );
+        }
+    }
+
+    /**
+     * Renders Markdown contents.
+     */
+    protected function renderMarkdown(string $markdown): string
+    {
+        try {
+            $content = Markdown::parse($markdown);
+            return trim($content);
+        } catch (\Throwable $e) {
+            return '';
         }
     }
 }
