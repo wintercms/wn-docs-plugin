@@ -2,7 +2,9 @@
 
 namespace Winter\Docs\Console;
 
+use Illuminate\Support\Facades\Queue;
 use Winter\Docs\Classes\DocsManager;
+use Winter\Docs\Jobs\ProcessDoc;
 use Winter\Storm\Console\Command;
 
 class DocsProcess extends Command
@@ -19,6 +21,7 @@ class DocsProcess extends Command
      */
     protected $signature = 'docs:process
         {id? : The identifier of the documentation to process}
+        {--j|queue= : Add as a job to the queue}
         {--t|token= : An authorization token to use when downloading the documentation}
         {--m|memory-limit= : The memory limit to use when processing documentation}';
 
@@ -58,50 +61,23 @@ class DocsProcess extends Command
             }
         }
 
-        foreach ($ids as $id) {
-            $this->processDoc($id);
-        }
-    }
-
-    public function processDoc(string $id)
-    {
-        $docsManager = DocsManager::instance();
-        $doc = $docsManager->getDocumentation($id);
-
-        $this->line('');
-
-        if (is_null($doc)) {
-            $this->error('No documentation by the given ID exists.');
-            return;
-        }
-
-        $this->info('Processing ' . $id);
-
-        // Download documentation
-        if ($doc->isRemote()) {
-            $this->line(' - Downloading documentation');
-            $doc->download($this->option('token'));
-
-            $this->line(' - Extracting documentation');
-            $doc->extract();
+        if (is_null($this->option('queue'))) {
+            $queue = false;
         } else {
-            $this->line(' - Documentation is locally available, skipping download');
+            $queue = $this->option('queue') ?: 'default';
         }
 
-        // Process documentation
-        $this->line(' - Processing documentation');
-        $doc->process();
-        $doc->resetState();
-
-        $pageList = $doc->getPageList();
-        $this->line(' - Processed ' . count($pageList) . ' page(s)');
-
-        if ($pageList->isSearchable()) {
-            $this->line(' - Indexing documentation');
-            $pageList->index();
+        foreach ($ids as $id) {
+            if ($queue === false) {
+                (new ProcessDoc())->processDoc($id, $this->option('token'), $this);
+            } else {
+                Queue::push(ProcessDoc::class, [
+                    'id' => $id,
+                    'token' => $this->option('token'),
+                    'memory_limit' => $this->option('memory-limit'),
+                ], $queue);
+                $this->info('- Added documentation processing to queue "' . $queue . '": ' . $id);
+            }
         }
-
-        $this->line(' - Clean up downloaded files');
-        $doc->cleanupDownload();
     }
 }
