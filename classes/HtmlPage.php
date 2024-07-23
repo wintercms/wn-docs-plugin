@@ -167,13 +167,51 @@ class HtmlPage implements Page
                     }
 
                     if (!is_null($linkNode)) {
+                        $typeNode = null;
+                        $content = [];
+
+                        foreach ($linkNode->childNodes as $linkChildNode) {
+                            if (
+                                !empty($linkChildNode->tagName)
+                                && $linkChildNode->tagName === 'span'
+                                && $linkChildNode->getAttribute('data-type') === '1'
+                            ) {
+                                $typeNode = [
+                                    'class' => $linkChildNode->getAttribute('class'),
+                                    'text' => trim($linkChildNode->textContent),
+                                ];
+                            } else {
+                                $content[] = trim($linkChildNode->textContent);
+                            }
+                        }
+
                         $navItem = [
-                            'title' => $linkNode->textContent,
+                            'title' => trim(implode(' ', $content)),
+                            'type' => $typeNode,
                             'anchor' => $linkNode->attributes->getNamedItem('href')->value,
                         ];
                     } else {
+                        $typeNode = null;
+                        $content = [];
+
+                        foreach ($spanNode->childNodes as $spanChildNode) {
+                            if (
+                                !empty($spanChildNode->tagName)
+                                && $spanChildNode->tagName === 'span'
+                                && $spanChildNode->getAttribute('data-type') === '1'
+                            ) {
+                                $typeNode = [
+                                    'class' => $spanChildNode->getAttribute('class'),
+                                    'text' => trim($spanChildNode->textContent),
+                                ];
+                            } else {
+                                $content[] = trim($spanChildNode->textContent);
+                            }
+                        }
+
                         $navItem = [
-                            'title' => $spanNode->textContent,
+                            'title' => trim(implode(' ', $content)),
+                            'type' => $typeNode,
                         ];
                     }
 

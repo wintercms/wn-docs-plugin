@@ -1,7 +1,9 @@
-<?php namespace Winter\Docs\Tests\Classes;
+<?php
 
-use ApplicationException;
+namespace Winter\Docs\Tests\Classes;
+
 use System\Tests\Bootstrap\TestCase;
+use Winter\Storm\Exception\ApplicationException;
 
 /**
  * @covers \Winter\Docs\Classes\BaseDocumentation
@@ -50,9 +52,9 @@ class BaseDocumentationTest extends TestCase
                 'Winter.Docs.Test',
                 [
                     'name' => 'Winter Docs Test',
-                    'type' => 'user',
+                    'type' => 'md',
                     'source' => 'remote',
-                    'url' => 'https://wintercms.com/docs/missing/docs.zip',
+                    'url' => 'https://wintercms.com/missing/docs.zip',
                     'zipFolder' => 'docs-main',
                 ]
             ]
@@ -73,10 +75,10 @@ class BaseDocumentationTest extends TestCase
                 'Winter.Docs.Test',
                 [
                     'name' => 'Winter Docs Test',
-                    'type' => 'user',
+                    'type' => 'md',
                     'source' => 'remote',
-                    'url' => 'https://github.com/wintercms/docs/archive/refs/heads/main.zip',
-                    'zipFolder' => 'docs-main',
+                    'url' => 'https://github.com/wintercms/docs/archive/refs/heads/develop.zip',
+                    'zipFolder' => 'docs-develop',
                 ]
             ]
         );
@@ -84,8 +86,8 @@ class BaseDocumentationTest extends TestCase
         $doc->download();
         $doc->extract();
 
-        $this->assertDirectoryExists($doc->getDownloadPath('extracted'));
-        $this->assertFileExists($doc->getDownloadPath('extracted/snowboard-introduction.md'));
+        $this->assertDirectoryExists($doc->getDownloadPath('collated'));
+        $this->assertFileExists($doc->getDownloadPath('collated/snowboard/introduction.md'));
     }
 
 /**
@@ -100,10 +102,10 @@ class BaseDocumentationTest extends TestCase
                 'Winter.Docs.Test',
                 [
                     'name' => 'Winter Docs Test',
-                    'type' => 'user',
+                    'type' => 'md',
                     'source' => 'remote',
-                    'url' => 'https://github.com/wintercms/docs/archive/refs/heads/main.zip',
-                    'zipFolder' => 'docs-main',
+                    'url' => 'https://github.com/wintercms/docs/archive/refs/heads/develop.zip',
+                    'zipFolder' => 'docs-develop',
                 ]
             ]
         );

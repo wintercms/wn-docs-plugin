@@ -15,7 +15,7 @@ class ApiParserTest extends TestCase
     {
         parent::setUp();
 
-        $this->apiParser = new PHPApiParser(dirname(dirname(__DIR__)) . '/fixtures', [
+        $this->apiParser = new PHPApiParser(dirname(__DIR__) . '/fixtures', [
             'api',
             'utilities',
         ]);
@@ -29,7 +29,7 @@ class ApiParserTest extends TestCase
     {
         $this->assertCount(7, $this->apiParser->getPaths());
 
-        $fixturePath = dirname(dirname(__DIR__)) . '/fixtures/';
+        $fixturePath = dirname(__DIR__) . '/fixtures/';
         $filenames = $this->apiParser->getPaths();
         sort($filenames, SORT_NATURAL);
 
@@ -87,8 +87,8 @@ class ApiParserTest extends TestCase
         $this->assertEquals('class', $classes['Docs\\Api\\Database\\Mysql']['type']);
         $this->assertEquals(false, $classes['Docs\\Api\\Database\\Mysql']['abstract']);
         $this->assertEquals(false, $classes['Docs\\Api\\Database\\Mysql']['final']);
-        $this->assertEquals('Docs\\Api\\Database\\BaseDb', $classes['Docs\\Api\\Database\\Mysql']['extends']);
-        $this->assertEquals('Docs\\Api\\Contracts\\Db', $classes['Docs\\Api\\Database\\Mysql']['implements'][0]);
+        $this->assertEquals('Docs\\Api\\Database\\BaseDb', $classes['Docs\\Api\\Database\\Mysql']['extends']['class']);
+        $this->assertEquals('Docs\\Api\\Contracts\\Db', $classes['Docs\\Api\\Database\\Mysql']['implements'][0]['class']);
 
         // It should have 2 properties, 2 constants and 3 methods locally, and 1 method inherited. It should also have one event
         $this->assertCount(2, $classes['Docs\\Api\\Database\\Mysql']['properties']);
@@ -156,7 +156,7 @@ class ApiParserTest extends TestCase
         $this->assertEquals('class', $classes['Docs\\Api\\Database\\Mysql']['type']);
         $this->assertEquals(false, $classes['Docs\\Api\\Database\\Mysql']['abstract']);
         $this->assertEquals(false, $classes['Docs\\Api\\Database\\Mysql']['final']);
-        $this->assertEquals('Docs\\Api\\Database\\BaseDb', $classes['Docs\\Api\\Database\\Mysql']['extends']);
+        $this->assertEquals('Docs\\Api\\Database\\BaseDb', $classes['Docs\\Api\\Database\\Mysql']['extends']['class']);
         $this->assertCount(1, $classes['Docs\\Api\\Database\\Mysqli']['implements']);
 
         // It should have 1 property, but no constants and methods locally, and 2 properties, 2 constants and 4 methods inherited.

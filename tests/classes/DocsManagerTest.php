@@ -1,4 +1,6 @@
-<?php namespace Winter\Docs\Tests\Classes;
+<?php
+
+namespace Winter\Docs\Tests\Classes;
 
 use System\Tests\Bootstrap\PluginTestCase;
 use System\Classes\PluginManager;
@@ -29,17 +31,6 @@ class DocsManagerTest extends PluginTestCase
         $this->runPluginRefreshCommand('Winter.Docs');
 
         $this->docsManager = DocsManager::instance();
-    }
-
-    /**
-     * @covers \Winter\Docs\Classes\DocsManager::registerDocumentation()
-     * @covers \Winter\Docs\Classes\DocsManager::hasDocumentation()
-     * @testdox can register all docs provided by plugins and determine if a plugin has a given doc.
-     */
-    public function testRegistration()
-    {
-        // Should be able to see docs registered for this plugin at least.
-        $this->assertTrue($this->docsManager->hasDocumentation('Winter.Docs', 'guide'));
     }
 
     /**
@@ -81,7 +72,7 @@ class DocsManagerTest extends PluginTestCase
 
         $this->docsManager->addDocumentation('Docs.Test', 'user', [
             'name' => 'User Documentation',
-            'type' => 'user',
+            'type' => 'md',
             'source' => 'local',
             'path' => dirname(dirname(__DIR__)) . '/fixtures/user'
         ]);

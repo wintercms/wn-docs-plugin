@@ -2,9 +2,23 @@
     {% for item in items %}
         <li>
             {% if item.anchor %}
-                <a href="{{ item.anchor }}">{{ item.title }}</a>
+                <a href="{{ item.anchor }}">
+                    {% if item.type %}
+                        <span class="type{% if item.type.class %} {{ item.type.class }}{% endif %}">
+                            {{ item.type.text }}
+                        </span>
+                    {% endif %}
+                    {{ item.title }}
+                </a>
             {% else %}
-                <span>{{ item.title }}</span>
+                <span>
+                    {% if item.type %}
+                        <span class="type{% if item.type.class %} {{ item.type.class }}{% endif %}">
+                            {{ item.type.text }}
+                        </span>
+                    {% endif %}
+                    {{ item.title }}
+                </span>
             {% endif %}
 
             {% if item.children %}

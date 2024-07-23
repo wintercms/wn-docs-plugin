@@ -1,20 +1,22 @@
-<?php namespace Winter\Docs\Classes;
+<?php
 
-use ApplicationException;
-use Cache;
-use Config;
+namespace Winter\Docs\Classes;
+
 use DirectoryIterator;
-use File;
-use Http;
-use Illuminate\Contracts\Filesystem\Filesystem;
-use Illuminate\Support\Facades\App;
-use Lang;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use Storage;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Storage;
 use Winter\Docs\Classes\Contracts\Documentation;
 use Winter\Docs\Classes\Contracts\Page;
+use Winter\Storm\Exception\ApplicationException;
 use Winter\Storm\Filesystem\Zip;
+use Winter\Storm\Support\Facades\Config;
+use Winter\Storm\Support\Facades\File;
+use Winter\Storm\Support\Facades\Http;
 
 abstract class BaseDocumentation implements Documentation
 {

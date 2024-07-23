@@ -2,16 +2,15 @@
 
 namespace Winter\Docs;
 
-use Backend;
 use Cms\Classes\Page;
 use Cms\Classes\Theme;
-use Event;
 use System\Classes\PluginBase;
 use Winter\Docs\Classes\DocsManager;
 use Winter\Docs\Classes\MarkdownDocumentation;
 use Winter\Docs\Classes\MarkdownPageIndex;
 use Winter\Docs\Classes\PHPApiPageIndex;
 use Winter\Storm\Support\Str;
+use Winter\Storm\Support\Facades\Event;
 
 /**
  * Docs plugin.
@@ -36,20 +35,6 @@ class Plugin extends PluginBase
             'icon'        => 'icon-tags',
             'homepage'    => 'https://github.com/wintercms/wn-docs-plugin',
             'replaces'    => 'RainLab.Docs',
-        ];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function registerQuickActions(): array
-    {
-        return [
-            'help' => [
-                'label' => 'winter.docs::lang.links.docsLink',
-                'icon' => 'icon-question-circle',
-                'url' => Backend::url('docs'),
-            ],
         ];
     }
 
@@ -156,6 +141,8 @@ class Plugin extends PluginBase
                     }
 
                     return [
+                        'group' => ($record->group_1 ?? null),
+                        'label' => (!empty($record->group_3)) ? ($record->group_2 ?? null) : null,
                         'title' => $record->title,
                         'description' => $excerpt,
                         'url' => Page::url($page->getBaseFileName(), ['slug' => $record->path]),

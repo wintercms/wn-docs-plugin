@@ -19,7 +19,8 @@ class DocsProcess extends Command
      */
     protected $signature = 'docs:process
         {id? : The identifier of the documentation to process}
-        {--t|token= : An authorization token to use when downloading the documentation}';
+        {--t|token= : An authorization token to use when downloading the documentation}
+        {--m|memory-limit= : The memory limit to use when processing documentation}';
 
     /**
      * The console command description.
@@ -35,6 +36,10 @@ class DocsProcess extends Command
      */
     public function handle()
     {
+        if ($this->option('memory-limit')) {
+            ini_set('memory_limit', $this->option('memory-limit'));
+        }
+
         $id = $this->argument('id');
         if (!empty($id)) {
             $ids = [$id];

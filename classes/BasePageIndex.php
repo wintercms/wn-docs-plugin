@@ -96,6 +96,7 @@ class BasePageIndex extends Model
     protected function arraySourceDbNeedsUpdate(): bool
     {
         if (static::$needsUpdate) {
+            static::$needsUpdate = false;
             return true;
         }
 
@@ -104,12 +105,6 @@ class BasePageIndex extends Model
         }
 
         if (!File::exists($this->arraySourceGetDbPath())) {
-            return true;
-        }
-
-        $modelFile = (new \ReflectionClass(static::class))->getFileName();
-
-        if (File::lastModified($this->arraySourceGetDbPath()) < File::lastModified($modelFile)) {
             return true;
         }
 
