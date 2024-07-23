@@ -19,7 +19,7 @@ jobs:
     env:
       extensions: curl, fileinfo, gd, mbstring, openssl, pdo, pdo_sqlite, sqlite3, xml, zip
     concurrency:
-      group: ${{ github.ref }}-${{ github.workflow }}
+      group: ${{ github.ref }}-${{ github.workflow }}-${{ matrix.operatingSystem }}-${{ matrix.phpVersion }}
       cancel-in-progress: true
     steps:
       - name: Checkout Winter CMS
