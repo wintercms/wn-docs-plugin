@@ -41,20 +41,6 @@ class Plugin extends PluginBase
     /**
      * {@inheritDoc}
      */
-    public function registerQuickActions(): array
-    {
-        return [
-            'help' => [
-                'label' => 'winter.docs::lang.links.docsLink',
-                'icon' => 'icon-question-circle',
-                'url' => Backend::url('docs'),
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function registerComponents(): array
     {
         return [
