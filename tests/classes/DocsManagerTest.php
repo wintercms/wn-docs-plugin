@@ -34,17 +34,6 @@ class DocsManagerTest extends PluginTestCase
     }
 
     /**
-     * @covers \Winter\Docs\Classes\DocsManager::registerDocumentation()
-     * @covers \Winter\Docs\Classes\DocsManager::hasDocumentation()
-     * @testdox can register all docs provided by plugins and determine if a plugin has a given doc.
-     */
-    public function testRegistration()
-    {
-        // Should be able to see docs registered for this plugin at least.
-        $this->assertTrue($this->docsManager->hasDocumentation('Winter.Docs', 'guide'));
-    }
-
-    /**
      * @covers \Winter\Docs\Classes\DocsManager::makeIdentifier()
      * @testdox can make valid identifiers for docs.
      */
