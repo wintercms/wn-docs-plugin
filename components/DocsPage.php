@@ -1,9 +1,9 @@
 <?php namespace Winter\Docs\Components;
 
-use App;
-use View;
-use Request;
 use Cms\Classes\ComponentBase;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Facades\View;
 use Winter\Docs\Classes\DocsManager;
 use Winter\Storm\Exception\AjaxException;
 
@@ -80,6 +80,7 @@ class DocsPage extends ComponentBase
         $this->page['sourceUrl'] = $docs->getRepositoryUrl();
         $this->page['mainNav'] = $pageList->getNavigation();
         $this->page['title'] = $page->getTitle();
+        $this->page->title = $page->getTitle() . ' | ' . $docs->getName();
         $this->page['pagePath'] = $page->getPath();
         $this->page['content'] = $page->getContent();
         $this->page['editUrl'] = $page->getEditUrl();
