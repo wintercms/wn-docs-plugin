@@ -1,5 +1,6 @@
 composer.lock
-vendor
+vendor/
 .phpunit.result.cache
+.phpunit.cache/
 coverage.xml
 .DS_Store

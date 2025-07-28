@@ -2,53 +2,46 @@
 
 namespace Winter\Docs\Tests\Classes;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\TestDox;
 use System\Tests\Bootstrap\TestCase;
+use Winter\Docs\Classes\BaseDocumentation;
 use Winter\Storm\Exception\ApplicationException;
 
-/**
- * @covers \Winter\Docs\Classes\BaseDocumentation
- * @testdox The Base Documentation abstract (\Winter\Docs\Classes\BaseDocumentation)
- */
+#[CoversClass(\Winter\Docs\Classes\BaseDocumentation::class)]
+#[TestDox('The Base Documentation abstract (\Winter\Docs\Classes\BaseDocumentation)')]
 class BaseDocumentationTest extends TestCase
 {
-    /**
-     * @covers \Winter\Docs\Classes\BaseDocumentation::download()
-     * @covers \Winter\Docs\Classes\BaseDocumentation::isDownloaded()
-     * @testdox can download a remote documentation ZIP file and indicate that it is downloaded.
-     */
+    #[TestDox('can download a remote documentation ZIP file and indicate that it is downloaded.')]
     public function testDownload(): void
     {
-        $doc = $this->getMockForAbstractClass(
-            'Winter\Docs\Classes\BaseDocumentation',
-            [
+        $doc = $this->getMockBuilder(BaseDocumentation::class)
+            ->setConstructorArgs([
                 'Winter.Docs.Test',
                 [
                     'name' => 'Winter Docs Test',
-                    'type' => 'user',
+                    'type' => 'md',
                     'source' => 'remote',
                     'url' => 'https://github.com/wintercms/docs/archive/refs/heads/main.zip',
                     'zipFolder' => 'docs-main',
-                ]
-            ]
-        );
+                ],
+            ])
+            ->onlyMethods(['process', 'getPageList'])
+            ->getMock();
 
         $doc->download();
         $this->assertFileExists($doc->getDownloadPath('archive.zip'));
         $this->assertTrue($doc->isDownloaded());
     }
 
-    /**
-     * @covers \Winter\Docs\Classes\BaseDocumentation::download()
-     * @testdox will throw an exception if the documentation URL is invalid when downloading.
-     */
+    #[TestDox('will throw an exception if the documentation URL is invalid when downloading.')]
     public function testDownloadInvalidUrl(): void
     {
         $this->expectException(ApplicationException::class);
         $this->expectExceptionMessageMatches('/Could not retrieve the documentation/i');
 
-        $doc = $this->getMockForAbstractClass(
-            'Winter\Docs\Classes\BaseDocumentation',
-            [
+        $doc = $this->getMockBuilder(BaseDocumentation::class)
+            ->setConstructorArgs([
                 'Winter.Docs.Test',
                 [
                     'name' => 'Winter Docs Test',
@@ -56,62 +49,36 @@ class BaseDocumentationTest extends TestCase
                     'source' => 'remote',
                     'url' => 'https://wintercms.com/missing/docs.zip',
                     'zipFolder' => 'docs-main',
-                ]
-            ]
-        );
+                ],
+            ])
+            ->onlyMethods(['process', 'getPageList'])
+            ->getMock();
 
         $doc->download();
     }
 
-    /**
-     * @covers \Winter\Docs\Classes\BaseDocumentation::extract()
-     * @testdox can extract a downloaded docs ZIP file.
-     */
-    public function testExtract(): void
+    #[TestDox('can extract a downloaded docs ZIP file and clean-up afterwards.')]
+    public function testExtractAndCleanUp(): void
     {
-        $doc = $this->getMockForAbstractClass(
-            'Winter\Docs\Classes\BaseDocumentation',
-            [
+        $doc = $this->getMockBuilder(BaseDocumentation::class)
+            ->setConstructorArgs([
                 'Winter.Docs.Test',
                 [
                     'name' => 'Winter Docs Test',
                     'type' => 'md',
                     'source' => 'remote',
-                    'url' => 'https://github.com/wintercms/docs/archive/refs/heads/develop.zip',
-                    'zipFolder' => 'docs-develop',
-                ]
-            ]
-        );
+                    'url' => 'https://github.com/wintercms/docs/archive/refs/heads/main.zip',
+                    'zipFolder' => 'docs-main',
+                ],
+            ])
+            ->onlyMethods(['process', 'getPageList'])
+            ->getMock();
 
         $doc->download();
         $doc->extract();
 
         $this->assertDirectoryExists($doc->getDownloadPath('collated'));
         $this->assertFileExists($doc->getDownloadPath('collated/snowboard/introduction.md'));
-    }
-
-/**
-     * @covers \Winter\Docs\Classes\BaseDocumentation::cleanupDownload()
-     * @testdox can clean up downloaded and extracted assets.
-     */
-    public function testCleanupDownload(): void
-    {
-        $doc = $this->getMockForAbstractClass(
-            'Winter\Docs\Classes\BaseDocumentation',
-            [
-                'Winter.Docs.Test',
-                [
-                    'name' => 'Winter Docs Test',
-                    'type' => 'md',
-                    'source' => 'remote',
-                    'url' => 'https://github.com/wintercms/docs/archive/refs/heads/develop.zip',
-                    'zipFolder' => 'docs-develop',
-                ]
-            ]
-        );
-
-        $doc->download();
-        $doc->extract();
 
         // Re-download the file
         $doc->download();

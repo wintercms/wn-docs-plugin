@@ -2,14 +2,15 @@
 
 namespace Winter\Docs\Tests\Classes;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\TestDox;
 use System\Tests\Bootstrap\PluginTestCase;
 use System\Classes\PluginManager;
 use Winter\Docs\Classes\DocsManager;
 
-/**
- * @covers \Winter\Docs\Classes\DocsManager
- * @testdox The Documentation Manager (\Winter\Docs\Classes\DocsManager)
- */
+
+#[CoversClass(\Winter\Docs\Classes\DocsManager::class)]
+#[TestDox('The Documentation Manager (\Winter\Docs\Classes\DocsManager)')]
 class DocsManagerTest extends PluginTestCase
 {
     protected $docsManager;
@@ -33,10 +34,7 @@ class DocsManagerTest extends PluginTestCase
         $this->docsManager = DocsManager::instance();
     }
 
-    /**
-     * @covers \Winter\Docs\Classes\DocsManager::makeIdentifier()
-     * @testdox can make valid identifiers for docs.
-     */
+    #[TestDox('can make valid identifiers for docs.')]
     public function testMakeIdentifier()
     {
         $this->assertEquals(
@@ -60,12 +58,7 @@ class DocsManagerTest extends PluginTestCase
         );
     }
 
-    /**
-     * @covers \Winter\Docs\Classes\DocsManager::addDocumentation()
-     * @covers \Winter\Docs\Classes\DocsManager::removeDocumentation()
-     * @covers \Winter\Docs\Classes\DocsManager::hasDocumentation()
-     * @testdox can manually add and remove documentation.
-     */
+    #[TestDox('can manually add and remove documentation.')]
     public function testAddDocumentation()
     {
         $this->assertFalse($this->docsManager->hasDocumentation('Docs.Test', 'user'));
