@@ -1571,7 +1571,7 @@ class PHPApiParser
         if (count($inheritedMethods)) {
             foreach ($inheritedMethods as $method) {
                 $child['methods'][] = array_replace(
-                    array_first($ancestor['methods'], function ($ancestorMethod) use ($method) {
+                    Arr::first($ancestor['methods'], function ($ancestorMethod) use ($method) {
                         return $ancestorMethod['name'] === $method;
                     }),
                     [
@@ -1588,7 +1588,7 @@ class PHPApiParser
         if (count($child['inheritedDocs']['methods'])) {
             foreach ($child['inheritedDocs']['methods'] as $key => $method) {
                 if (in_array($method, $ancestorMethods)) {
-                    $ancestorMethod = array_first($ancestor['methods'], function ($ancestorMethod) use ($method) {
+                    $ancestorMethod = Arr::first($ancestor['methods'], function ($ancestorMethod) use ($method) {
                         return $ancestorMethod['name'] === $method;
                     });
 
@@ -1621,7 +1621,7 @@ class PHPApiParser
         if (count($inheritedProps)) {
             foreach ($inheritedProps as $property) {
                 $child['properties'][] = array_replace(
-                    array_first($ancestor['properties'], function ($ancestorProp) use ($property) {
+                    Arr::first($ancestor['properties'], function ($ancestorProp) use ($property) {
                         return $ancestorProp['name'] === $property;
                     }),
                     [
@@ -1638,7 +1638,7 @@ class PHPApiParser
         if (count($child['inheritedDocs']['properties'])) {
             foreach ($child['inheritedDocs']['properties'] as $key => $prop) {
                 if (in_array($prop, $ancestorProps)) {
-                    $ancestorProp = array_first($ancestor['properties'], function ($ancestorProp) use ($prop) {
+                    $ancestorProp = Arr::first($ancestor['properties'], function ($ancestorProp) use ($prop) {
                         return $ancestorProp['name'] === $prop;
                     });
 
@@ -1670,7 +1670,7 @@ class PHPApiParser
         if (count($inheritedConsts)) {
             foreach ($inheritedConsts as $constant) {
                 $child['constants'][] = array_replace(
-                    array_first($ancestor['constants'], function ($ancestorConst) use ($constant) {
+                    Arr::first($ancestor['constants'], function ($ancestorConst) use ($constant) {
                         return $ancestorConst['name'] === $constant;
                     }),
                     [
@@ -1687,7 +1687,7 @@ class PHPApiParser
         if (count($child['inheritedDocs']['constants'])) {
             foreach ($child['inheritedDocs']['constants'] as $key => $const) {
                 if (in_array($const, $ancestorConsts)) {
-                    $ancestorConst = array_first($ancestor['constants'], function ($ancestorConst) use ($const) {
+                    $ancestorConst = Arr::first($ancestor['constants'], function ($ancestorConst) use ($const) {
                         return $ancestorConst['name'] === $const;
                     });
 
@@ -1803,7 +1803,7 @@ class PHPApiParser
             if (isset($class['inherited']['methods'])) {
                 foreach ($class['inherited']['methods'] as &$method) {
                     if (isset($method['method']['docs']['inherit']) && $method['method']['docs']['inherit'] === true) {
-                        $ancestorMethod = array_first($this->classes[$method['class']]['methods'], function ($ancestorMethod) use ($method) {
+                        $ancestorMethod = Arr::first($this->classes[$method['class']]['methods'], function ($ancestorMethod) use ($method) {
                             return $ancestorMethod['name'] === $method['method']['name'];
                         });
 
@@ -1818,7 +1818,7 @@ class PHPApiParser
             if (isset($class['inherited']['properties'])) {
                 foreach ($class['inherited']['properties'] as &$property) {
                     if (isset($property['property']['docs']['inherit']) && $property['property']['docs']['inherit'] === true) {
-                        $ancestorProp = array_first($this->classes[$property['class']]['properties'], function ($ancestorProp) use ($property) {
+                        $ancestorProp = Arr::first($this->classes[$property['class']]['properties'], function ($ancestorProp) use ($property) {
                             return $ancestorProp['name'] === $property['property']['name'];
                         });
 
@@ -1833,7 +1833,7 @@ class PHPApiParser
             if (isset($class['inherited']['constants'])) {
                 foreach ($class['inherited']['constants'] as &$const) {
                     if (isset($const['constant']['docs']['inherit']) && $const['constant']['docs']['inherit'] === true) {
-                        $ancestorConst = array_first($this->classes[$const['class']]['constants'], function ($ancestorConst) use ($const) {
+                        $ancestorConst = Arr::first($this->classes[$const['class']]['constants'], function ($ancestorConst) use ($const) {
                             return $ancestorConst['name'] === $const['constant']['name'];
                         });
 
