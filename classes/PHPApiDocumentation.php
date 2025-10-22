@@ -2,10 +2,10 @@
 
 namespace Winter\Docs\Classes;
 
-use File;
 use Illuminate\Support\Facades\App;
 use Twig\TemplateWrapper;
 use Winter\Storm\Exception\ApplicationException;
+use Winter\Storm\Support\Facades\File;
 
 /**
  * PHP API Documentation instance.
@@ -31,6 +31,11 @@ class PHPApiDocumentation extends BaseDocumentation
      * Path to the Twig template for rendering the API docs.
      */
     protected string $template;
+
+    /**
+     * Path to the Twig template for rendering event API docs.
+     */
+    protected string $eventTemplate;
 
     /**
      * Prepared template for rendering API docs.
@@ -167,12 +172,24 @@ class PHPApiDocumentation extends BaseDocumentation
                 'title' => $key,
             ];
 
+            try {
+                $rendered = $this->preparedTemplate->render([
+                    'class' => $class,
+                ]);
+            } catch (\Throwable $e) {
+                throw new ApplicationException(
+                    sprintf(
+                        'An error occurred while rendering the API documentation for class "%s": %s',
+                        $class['name'],
+                        $e->getMessage()
+                    )
+                );
+            }
+
             // Create docs
             $this->getStorageDisk()->put(
                 $this->getProcessedPath(ltrim($baseNamespace . '/' . $key . '.htm')),
-                $this->prependFrontMatter($class, $this->preparedTemplate->render([
-                    'class' => $class,
-                ]))
+                $this->prependFrontMatter($class, $rendered)
             );
 
             $nav[] = $navItem;

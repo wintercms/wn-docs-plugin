@@ -1,12 +1,15 @@
-<?php namespace Winter\Docs\Tests\Classes;
+<?php
 
+namespace Winter\Docs\Tests\Classes;
+
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversMethod;
+use PHPUnit\Framework\Attributes\TestDox;
 use System\Tests\Bootstrap\TestCase;
 use Winter\Docs\Classes\PHPApiParser;
 
-/**
- * @covers \Winter\Docs\Classes\PHPApiParser
- * @testdox The API Parser class (\Winter\Docs\Classes\PHPApiParser)
- */
+#[CoversClass(PHPApiParser::class)]
+#[TestDox('The API Parser class (\Winter\Docs\Classes\PHPApiParser)')]
 class ApiParserTest extends TestCase
 {
     protected $apiParser;
@@ -21,10 +24,7 @@ class ApiParserTest extends TestCase
         ]);
     }
 
-    /**
-     * @covers \Winter\Docs\Classes\PHPApiParser::getPaths()
-     * @testdox can get the paths of all PHP files in a given codebase.
-     */
+    #[TestDox('can get the paths of all PHP files in a given codebase.')]
     public function testGetPaths()
     {
         $this->assertCount(7, $this->apiParser->getPaths());
@@ -44,10 +44,7 @@ class ApiParserTest extends TestCase
         ], $filenames);
     }
 
-    /**
-     * @covers \Winter\Docs\Classes\PHPApiParser::parse()
-     * @testdox can parse all PHP files and present the schema in an array.
-     */
+    #[TestDox('can parse all PHP files and present the schema in an array..')]
     public function testParse()
     {
         $this->apiParser->parse();

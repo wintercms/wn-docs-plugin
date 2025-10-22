@@ -345,7 +345,16 @@ abstract class BaseDocumentation implements Documentation
             }
         }
 
-        $zip->extractTo($this->getDownloadPath('extracted'), $toExtract);
+        if (!$zip->extractTo($this->getDownloadPath('extracted'), $toExtract)) {
+            throw new ApplicationException(
+                sprintf(
+                    'Could not extract the documentation for "%s" from the remote source "%s" - %s',
+                    $this->identifier,
+                    $this->source,
+                    $zip->getStatusString()
+                )
+            );
+        }
 
         // Move remaining files into location
         $extractPath = $this->getDownloadPath('extracted/' . $this->zipFolder);
