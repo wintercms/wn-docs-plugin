@@ -104,7 +104,7 @@ class PHPApiParser
     public function parse(): void
     {
         // Create parser and node finder
-        $parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
+        $parser = (new ParserFactory)->createForHostVersion();
         $nodeFinder = new NodeFinder;
 
         // Add name resolver
