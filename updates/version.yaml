@@ -1,3 +1,4 @@
 "1.0.0": Initial version of the Winter Docs plugin.
 "1.0.1": Allow processing of documentation through job queue.
 "1.0.3": Set the CMS page title to the documentation page title and documentation name, and replaced the removed `array_first()` helper with `Arr::first()`.
+"1.0.4": Required PHP Parser 5 and PHP 8.1 so the plugin installs with current Winter 1.2, and made a missing table of contents file or a failed ZIP extraction raise a clear error.

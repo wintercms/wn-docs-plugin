@@ -127,11 +127,15 @@ class MarkdownDocumentation extends BaseDocumentation
             : $this->guessTocPath();
 
         if (is_null($tocPath)) {
-            // Create a TOC from the page list
-            $toc = $this->autoGenerateToc($pageMap);
-        } else {
-            $toc = $this->processTocFile($tocPath, $pageMap);
+            // There is no automatic TOC generation; a TOC file is required.
+            throw new ApplicationException(sprintf(
+                'No table of contents file was found for the "%s" documentation. Add one%s.',
+                $this->identifier,
+                $this->tocPath ? ' at "' . $this->tocPath . '"' : ''
+            ));
         }
+
+        $toc = $this->processTocFile($tocPath, $pageMap);
         $this->getStorageDisk()->put(
             $this->getProcessedPath('toc.json'),
             json_encode($toc),
